@@ -36,7 +36,9 @@ fun MainMenuScreen(modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxSize()
             .background(color = Color.DarkGray).padding(15.dp)
     ) {
-        GameTitle()
+        GameTitle(
+            modifier = Modifier.padding(top = 120.dp, bottom = 80.dp)
+        )
 
         ActionButton(
             onClick = {},
@@ -46,7 +48,7 @@ fun MainMenuScreen(modifier: Modifier = Modifier) {
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxHeight(),
+            modifier = Modifier.fillMaxHeight().padding(bottom = 100.dp),
             verticalArrangement = Arrangement.Bottom
         ) {
             Text(
