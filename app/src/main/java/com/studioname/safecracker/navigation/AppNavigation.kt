@@ -8,6 +8,8 @@ import androidx.navigation.compose.rememberNavController
 import com.studioname.safecracker.ui.DisplayNameScreen
 import com.studioname.safecracker.ui.MainMenuScreen
 import com.studioname.safecracker.viewmodel.DisplayNameVM
+import com.studioname.safecracker.viewmodel.MainMenuVM
+import dagger.hilt.android.lifecycle.HiltViewModel
 
 @Composable
 fun AppNavigation() {
@@ -20,7 +22,10 @@ fun AppNavigation() {
         }
 
         composable("main_menu") {
-            MainMenuScreen() // TODO: needs onCodeSubmitted callback function logic, similar to above
+            val viewModel: MainMenuVM = hiltViewModel()
+            MainMenuScreen(viewModel = viewModel)
+
+            // TODO: needs onCodeSubmitted callback function logic, similar to above
         }
     }
 }

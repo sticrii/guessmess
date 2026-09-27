@@ -23,13 +23,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.studioname.safecracker.ui.components.ActionButton
 import com.studioname.safecracker.ui.components.GameTitle
 import com.studioname.safecracker.ui.theme.SafeCrackerTheme
+import com.studioname.safecracker.viewmodel.MainMenuVM
 
 @Composable
-fun MainMenuScreen(modifier: Modifier = Modifier) {
+fun MainMenuScreen(
+    viewModel: MainMenuVM?,
+    modifier: Modifier = Modifier) {
     var roomCode by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -41,10 +46,26 @@ fun MainMenuScreen(modifier: Modifier = Modifier) {
         )
 
         ActionButton(
-            onClick = {},
+            onClick = {
+                viewModel?.createLobby(
+                    onSuccess = { code ->
+                        message = "Kod sobe: $code"
+                    },
+                    onError = { error ->
+                        message = error
+                    }
+
+                )
+            },
             buttonText = "CREATE LOBBY",
             modifier = Modifier.fillMaxWidth()
         )
+        if (message.isNotEmpty()) {
+            Text(
+                text = message,
+                color = Color.White
+            )
+        }
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -83,7 +104,7 @@ fun MainMenuScreen(modifier: Modifier = Modifier) {
 @Preview
 @Composable
 fun MainMenuPreview() {
-    SafeCrackerTheme() {
-        MainMenuScreen()
+    SafeCrackerTheme {
+        MainMenuScreen(viewModel = null)
     }
 }

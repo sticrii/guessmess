@@ -3,6 +3,8 @@ package com.studioname.safecracker.repository
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.database.database
+import com.google.firebase.database.getValue
+import com.studioname.safecracker.model.DisplayName
 import com.studioname.safecracker.model.Player
 import com.studioname.safecracker.model.PlayerId
 import kotlinx.coroutines.tasks.await
@@ -26,10 +28,16 @@ class Repository @Inject constructor() {
     }
 
     suspend fun getPlayer(playerId: PlayerId): Player? {
-        return db.child("players/${playerId}")
-            .get()
-            .await()
-            .getValue(Player::class.java) // converts from JSON to Player type
+        val snapshot = db.child("players").child(playerId.value)
+            .get().await()
+
+        //pre se koristio ceo PlayerId objekat, sad value
+
+        val displayName = snapshot.child("displayName")
+            .getValue(String::class.java) //converts from JSON to Player type
+            ?: return null
+
+        return Player(id = playerId, displayName = DisplayName(displayName))
     }
 
     // TODO: migrate from firebase anonymous auth to google play service auth
@@ -43,5 +51,32 @@ class Repository @Inject constructor() {
         val uid: String = this.getCurrentPlayerId()
         val playerId: PlayerId = PlayerId(uid)
         return this.getPlayer(playerId)
+    }
+
+    suspend fun createLobby(player: Player): String{
+        var roomCode: String
+
+        do {
+            roomCode = (100000..999999).random().toString()
+            val roomExists = db.child("rooms").child(roomCode)
+                .get().await().exists()
+            //to do: napraviti pouzdaniju proveru
+
+        } while(roomExists)
+
+        val lobby = mapOf(
+            "phase" to "LOBBY",
+            "round" to 1,
+            "hostId" to player.id.value,
+            "players" to mapOf(
+                player.id.value to mapOf(
+                    "name" to player.displayName.value,
+                    "failedAttempts" to 0,
+                    "isEliminated" to false
+                )
+            )
+        )
+        db.child("rooms").child(roomCode).setValue(lobby).await()
+        return roomCode
     }
 }
