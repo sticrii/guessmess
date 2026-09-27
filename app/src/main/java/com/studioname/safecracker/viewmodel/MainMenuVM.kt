@@ -12,23 +12,46 @@ import javax.inject.Inject
 @HiltViewModel
 class MainMenuVM @Inject constructor(
     private val repository: Repository
-    ):ViewModel(){
+    ):ViewModel() {
     fun createLobby(
         onSuccess: (String) -> Unit,
         onError: (String) -> Unit
-    ){
+    ) {
         viewModelScope.launch {
             try {
                 val player = repository.getCurrentPlayer()
-                if(player == null){
+                if (player == null) {
                     onError("Player not found.")
                     return@launch
                 }
                 val roomCode = repository.createLobby(player)
                 onSuccess(roomCode)
-            }catch (e: Exception){
+            } catch (e: Exception) {
                 onError(e.message ?: "Lobby couldn't be created.")
             }
         }
     }
+
+    fun joinLobby(
+        roomCode: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val player = repository.getCurrentPlayer()
+
+                if (player == null) {
+                    onError("Player not found.")
+                    return@launch
+                }
+
+                repository.joinLobby(roomCode, player)
+                onSuccess()
+
+            } catch (e: Exception) {
+                onError(e.message ?: "Couldn't join lobby.")
+            }
+        }
     }
+}

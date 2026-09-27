@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -23,11 +22,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.studioname.safecracker.ui.components.ActionButton
 import com.studioname.safecracker.ui.components.GameTitle
 import com.studioname.safecracker.ui.theme.SafeCrackerTheme
 import com.studioname.safecracker.viewmodel.MainMenuVM
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 @Composable
 fun MainMenuScreen(
@@ -35,6 +36,7 @@ fun MainMenuScreen(
     modifier: Modifier = Modifier) {
     var roomCode by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -49,7 +51,7 @@ fun MainMenuScreen(
             onClick = {
                 viewModel?.createLobby(
                     onSuccess = { code ->
-                        message = "Kod sobe: $code"
+                        message = "Room code: $code"
                     },
                     onError = { error ->
                         message = error
@@ -93,7 +95,22 @@ fun MainMenuScreen(
             )
 
             ActionButton(
-                onClick = {},
+                onClick = {
+                    viewModel?.joinLobby(
+                        roomCode = roomCode,
+                        onSuccess = {
+                            message = "Successfully joined"
+
+                            coroutineScope.launch {
+                                delay(1000)
+                                message = "Room code: ${roomCode.trim()}"
+                            }
+                        },
+                        onError = { error ->
+                            message = error
+                        }
+                    )
+                },
                 buttonText = "JOIN LOBBY",
                 modifier = Modifier.fillMaxWidth()
             )

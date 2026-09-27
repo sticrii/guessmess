@@ -53,6 +53,14 @@ class Repository @Inject constructor() {
         return this.getPlayer(playerId)
     }
 
+    private fun createPlayerData(player: Player): Map<String, Any> {
+        return mapOf(
+            "name" to player.displayName.value,
+            "failedAttempts" to 0,
+            "isEliminated" to false
+        )
+    }
+
     suspend fun createLobby(player: Player): String{
         var roomCode: String
 
@@ -69,14 +77,36 @@ class Repository @Inject constructor() {
             "round" to 1,
             "hostId" to player.id.value,
             "players" to mapOf(
-                player.id.value to mapOf(
-                    "name" to player.displayName.value,
-                    "failedAttempts" to 0,
-                    "isEliminated" to false
-                )
+                player.id.value to createPlayerData(player)
             )
         )
         db.child("rooms").child(roomCode).setValue(lobby).await()
         return roomCode
+    }
+
+    suspend fun joinLobby(roomCode: String, player: Player){
+        val code = roomCode.trim()
+
+        if (code.length != 6 || !code.all { it.isDigit() }) {
+            error("Code must have 6 digits.")
+        }
+
+        val roomReference = db.child("rooms").child(code)
+        val roomSnapshot = roomReference.get().await()
+
+        if (!roomSnapshot.exists()) {
+            error("A room with that code doesn't exist.")
+        }
+
+        val phase = roomSnapshot.child("phase")
+            .getValue(String::class.java)
+
+        if (phase != "LOBBY") {
+            error("This room is no longer accepting players.")
+        }
+
+        roomReference
+            .child("players").child(player.id.value)
+            .setValue(createPlayerData(player)).await()
     }
 }
