@@ -26,17 +26,14 @@ import com.studioname.safecracker.ui.components.ActionButton
 import com.studioname.safecracker.ui.components.GameTitle
 import com.studioname.safecracker.ui.theme.SafeCrackerTheme
 import com.studioname.safecracker.viewmodel.MainMenuVM
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 
 @Composable
 fun MainMenuScreen(
     viewModel: MainMenuVM?,
+    onLobbyJoined: (String) -> Unit = {},
     modifier: Modifier = Modifier) {
     var roomCode by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
-    val coroutineScope = rememberCoroutineScope()
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -51,7 +48,7 @@ fun MainMenuScreen(
             onClick = {
                 viewModel?.createLobby(
                     onSuccess = { code ->
-                        message = "Room code: $code"
+                        onLobbyJoined(code)
                     },
                     onError = { error ->
                         message = error
@@ -99,12 +96,7 @@ fun MainMenuScreen(
                     viewModel?.joinLobby(
                         roomCode = roomCode,
                         onSuccess = {
-                            message = "Successfully joined"
-
-                            coroutineScope.launch {
-                                delay(1000)
-                                message = "Room code: ${roomCode.trim()}"
-                            }
+                            onLobbyJoined(roomCode.trim())
                         },
                         onError = { error ->
                             message = error

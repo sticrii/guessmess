@@ -109,4 +109,26 @@ class Repository @Inject constructor() {
             .child("players").child(player.id.value)
             .setValue(createPlayerData(player)).await()
     }
+    suspend fun leaveLobby(roomCode: String, playerId: String) {
+        val roomReference = db.child("rooms").child(roomCode.trim())
+        val playersReference = roomReference.child("players")
+
+        val currentHostId = roomReference
+            .child("hostId")
+            .get().await().getValue(String::class.java)
+
+        playersReference.child(playerId).removeValue().await()
+
+        val playersSnapshot = playersReference.get().await()
+        val nextHostId = playersSnapshot.children.firstOrNull()?.key
+
+        if (nextHostId == null) {
+            roomReference.removeValue().await()
+            return
+        }
+
+        if (currentHostId == playerId) {
+            roomReference.child("hostId").setValue(nextHostId).await()
+        }
+    }
 }

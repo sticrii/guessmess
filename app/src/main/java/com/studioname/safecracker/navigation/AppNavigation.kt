@@ -2,14 +2,17 @@ package com.studioname.safecracker.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.studioname.safecracker.ui.DisplayNameScreen
 import com.studioname.safecracker.ui.MainMenuScreen
+import com.studioname.safecracker.ui.RoomLobbyScreen
 import com.studioname.safecracker.viewmodel.DisplayNameVM
 import com.studioname.safecracker.viewmodel.MainMenuVM
-import dagger.hilt.android.lifecycle.HiltViewModel
+import com.studioname.safecracker.viewmodel.RoomLobbyVM
 
 @Composable
 fun AppNavigation() {
@@ -23,9 +26,28 @@ fun AppNavigation() {
 
         composable("main_menu") {
             val viewModel: MainMenuVM = hiltViewModel()
-            MainMenuScreen(viewModel = viewModel)
+            MainMenuScreen(
+                viewModel = viewModel,
+                onLobbyJoined = { code ->
+                    navController.navigate("room_lobby/$code")
+                }
+            )
+        }
 
-            // TODO: needs onCodeSubmitted callback function logic, similar to above
+        composable(
+            route = "room_lobby/{roomCode}",
+            arguments = listOf(navArgument("roomCode") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val roomCode = backStackEntry.arguments?.getString("roomCode").orEmpty()
+            val viewModel: RoomLobbyVM = hiltViewModel()
+
+            RoomLobbyScreen(
+                roomCode = roomCode,
+                viewModel = viewModel,
+                onLeave = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }
