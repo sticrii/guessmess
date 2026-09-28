@@ -1,15 +1,23 @@
 package com.studioname.safecracker.repository
 
+import android.R
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.database
 import com.google.firebase.database.getValue
 import com.studioname.safecracker.model.DisplayName
 import com.studioname.safecracker.model.Player
 import com.studioname.safecracker.model.PlayerId
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.google.firebase.database.ValueEventListener
+import kotlinx.coroutines.channels.awaitClose
 
 @Singleton
 class Repository @Inject constructor() {
@@ -131,5 +139,27 @@ class Repository @Inject constructor() {
         if (currentHostId == playerId) {
             lobbyReference.child("hostId").setValue(nextHostId).await()
         }
+    }
+
+    // callbackFlow bridges the gap between callback style (firebase, old)
+    // and flow style (what we are using, similar to react, think useEffect())
+    fun getLobbyPlayers(lobbyCode: String): Flow<List<Player>> = callbackFlow {
+        val ref = db.child("lobbies").child(lobbyCode.trim()).child("players")
+
+        // firebase uses callback style, every time a value is changed (a player joins/leaves)
+        // it will call onDataChange, we define it here
+        val listener = ref.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                // snapshot.children is the list of all players in the lobby (JSON)
+                val players = snapshot.children.mapNotNull {
+                    it.getValue(Player::class.java) // deserialize (JSON -> object)
+                }
+                trySend(players) // translates to flow style
+            }
+            override fun onCancelled(error: DatabaseError) {} // in case of error
+        })
+
+        // when flow stops listening, this closes teh firebase listener
+        awaitClose { ref.removeEventListener(listener) }
     }
 }

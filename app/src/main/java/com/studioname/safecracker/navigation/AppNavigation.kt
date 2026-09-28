@@ -38,11 +38,9 @@ fun AppNavigation() {
             route = "lobby/{lobbyCode}",
             arguments = listOf(navArgument("lobbyCode") { type = NavType.StringType })
         ) { backStackEntry ->
-            val lobbyCode = backStackEntry.arguments?.getString("lobbyCode").orEmpty()
             val viewModel: LobbyVM = hiltViewModel()
 
             LobbyScreen(
-                lobbyCode = lobbyCode,
                 viewModel = viewModel,
                 onLeave = {
                     navController.popBackStack()

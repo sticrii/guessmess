@@ -26,15 +26,25 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.studioname.safecracker.enums.ButtonColors
 import com.studioname.safecracker.enums.TextSize
 import com.studioname.safecracker.ui.components.ActionButton
 import com.studioname.safecracker.ui.theme.SafeCrackerTheme
 import com.studioname.safecracker.viewmodel.LobbyVM
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.studioname.safecracker.R
+import com.studioname.safecracker.enums.StickerSize
+import com.studioname.safecracker.ui.components.PlayerSticker
+import com.studioname.safecracker.ui.components.StickerAndName
 
 @Composable
 fun LobbyScreen(
-    lobbyCode: String,
     viewModel: LobbyVM?,
     onLeave: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -60,24 +70,23 @@ fun LobbyScreen(
         )
 
         Text(
-            text = "PARTY CODE: $lobbyCode",
+            text = "PARTY CODE: ${viewModel?.lobbyCode}",
             fontWeight = FontWeight.Medium,
             color = Color.White,
             fontSize = 20.sp
         )
 
+        StickerAndName(size = StickerSize.SHOWCASE, displayName = "my_nickname")
+
         ActionButton(
-            onClick = {},
+            onClick = {}, // TODO: write ready logic
             buttonText = "READY",
             modifier = Modifier.width(250.dp)
         )
 
-        
-
         Button(
             onClick = {
                 viewModel?.leaveLobby(
-                    lobbyCode = lobbyCode,
                     onSuccess = onLeave,
                     onError = { errorMessage = it }
                 ) ?: onLeave()
@@ -115,7 +124,6 @@ fun LobbyScreen(
 fun LobbyScreenPreview() {
     SafeCrackerTheme {
         LobbyScreen(
-            lobbyCode = "123456",
             viewModel = null,
             onLeave = {}
         )
