@@ -149,6 +149,7 @@ fun LobbyScreen(
             ) {
                 Text(
                     text = "LEAVE",
+                    color = Color.White,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = TextSize.SUBTITLE.value,
                     letterSpacing = 1.sp,
