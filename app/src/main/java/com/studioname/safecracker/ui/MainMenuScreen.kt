@@ -56,7 +56,7 @@ fun MainMenuScreen(
                     }
                 )
             },
-            buttonText = "CREATE LOBBY",
+            buttonText = "START PARTY",
             modifier = Modifier.fillMaxWidth()
         )
         if (message.isNotEmpty()) {
@@ -103,7 +103,7 @@ fun MainMenuScreen(
                         }
                     )
                 },
-                buttonText = "JOIN LOBBY",
+                buttonText = "JOIN PARTY",
                 modifier = Modifier.fillMaxWidth()
             )
         }

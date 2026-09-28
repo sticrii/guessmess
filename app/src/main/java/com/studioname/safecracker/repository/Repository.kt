@@ -68,7 +68,7 @@ class Repository @Inject constructor() {
             lobbyCode = (100000..999999).random().toString()
             val lobbyExists = db.child("lobbies").child(lobbyCode)
                 .get().await().exists()
-            //to do: napraviti pouzdaniju proveru
+            // TODO: napraviti pouzdaniju proveru
 
         } while (lobbyExists)
 

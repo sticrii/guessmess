@@ -9,6 +9,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.studioname.safecracker.enums.TextSize
 
 /**
  * Reusable GameTitle component, will be replaced by game logo
@@ -21,7 +22,7 @@ fun GameTitle(modifier: Modifier = Modifier.padding(top = 200.dp, bottom = 30.dp
     Text(
         text = "SAFE CRACKER",
         textAlign = TextAlign.Center,
-        fontSize = 40.sp,
+        fontSize = TextSize.TITLE.value,
         fontWeight = FontWeight.Bold,
         color = Color.White,
         letterSpacing = 3.sp,

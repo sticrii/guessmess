@@ -21,6 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.studioname.safecracker.enums.TextSize
 import com.studioname.safecracker.ui.components.ActionButton
 import com.studioname.safecracker.ui.components.GameTitle
 import com.studioname.safecracker.ui.theme.SafeCrackerTheme
@@ -53,7 +54,7 @@ fun DisplayNameScreen(
         ) {
             Text(
                 text = "Enter a nickname",
-                fontSize = 25.sp,
+                fontSize = TextSize.SUBTITLE.value,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.White,
                 modifier = Modifier.padding(20.dp)

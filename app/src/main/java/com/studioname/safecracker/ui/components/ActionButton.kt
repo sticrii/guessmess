@@ -12,6 +12,8 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.studioname.safecracker.enums.ButtonColors
+import com.studioname.safecracker.enums.TextSize
 
 /**
  * Reusable action button component to enforce consistency. To be used as the main button on the screen
@@ -25,7 +27,7 @@ fun ActionButton(onClick: () -> Unit, buttonText: String, modifier: Modifier = M
     Button(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFFB83728)
+            containerColor = ButtonColors.ACTION.value
         ),
         shape = RectangleShape,
         modifier = modifier.padding(top = 20.dp, start = 20.dp, end = 20.dp),
@@ -37,7 +39,7 @@ fun ActionButton(onClick: () -> Unit, buttonText: String, modifier: Modifier = M
     ) {
         Text(
             text = buttonText,
-            fontSize = 30.sp,
+            fontSize = TextSize.ACTION.value,
             modifier = Modifier.padding(10.dp),
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.sp,
