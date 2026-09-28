@@ -17,7 +17,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -33,8 +32,16 @@ import com.studioname.safecracker.ui.components.ActionButton
 import com.studioname.safecracker.ui.theme.SafeCrackerTheme
 import com.studioname.safecracker.viewmodel.LobbyVM
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -54,8 +61,8 @@ fun LobbyScreen(
         modifier = modifier
             .fillMaxSize()
             .background(Color.DarkGray)
-            .padding(24.dp)
-            .safeDrawingPadding(),
+            .safeDrawingPadding()
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
@@ -76,7 +83,42 @@ fun LobbyScreen(
             fontSize = 20.sp
         )
 
-        StickerAndName(size = StickerSize.SHOWCASE, displayName = "my_nickname")
+        StickerAndName(
+            size = StickerSize.SHOWCASE,
+            displayName = viewModel?.currentPlayer?.displayName?.value,
+            // TODO: once done, change ViewModel? to ViewModel in LobbyScreen parameters
+        )
+
+        // display all other players, wraps if too many to display
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (viewModel?.players.isNullOrEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize().border(width = 1.dp, color = Color.Black),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "Nobody seems to be here...",
+                        color = Color.Gray,
+                        fontSize = TextSize.INFO.value
+                    )
+                }
+            } else {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    viewModel?.players?.forEach { player ->
+                        StickerAndName(size = StickerSize.REGULAR, displayName = player.displayName.value)
+                    }
+                }
+            }
+        }
 
         ActionButton(
             onClick = {}, // TODO: write ready logic
