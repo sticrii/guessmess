@@ -19,7 +19,7 @@ import com.studioname.safecracker.enums.TextSize
 import com.studioname.safecracker.ui.theme.SafeCrackerTheme
 
 @Composable
-fun StickerAndName(size: StickerSize, referenceImage: Int = R.drawable.player_sticker, displayName: String?) {
+fun StickerAndName(size: StickerSize, referenceImage: Int = R.drawable.player_sticker, displayName: String) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(if (size == StickerSize.SHOWCASE) 10.dp else 5.dp),
@@ -27,7 +27,7 @@ fun StickerAndName(size: StickerSize, referenceImage: Int = R.drawable.player_st
         PlayerSticker(size = size, referenceImage = referenceImage)
 
         Text(
-            text = if (displayName != null) displayName else "Player",
+            text = displayName,
             fontSize = if (size == StickerSize.SHOWCASE) TextSize.SUBTITLE.value else TextSize.INFO.value,
             color = Color.White,
             fontWeight = FontWeight.SemiBold,
@@ -49,7 +49,7 @@ fun StickerAndNamePreview() {
             )
             StickerAndName(
                 size = StickerSize.REGULAR,
-                displayName = null
+                displayName = "Player 2"
             )
         }
     }

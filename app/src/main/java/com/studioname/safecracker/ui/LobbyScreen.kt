@@ -1,7 +1,6 @@
 package com.studioname.safecracker.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,6 +32,7 @@ import com.studioname.safecracker.ui.theme.SafeCrackerTheme
 import com.studioname.safecracker.viewmodel.LobbyVM
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -72,8 +72,7 @@ fun LobbyScreen(
             fontSize = TextSize.TITLE.value,
             lineHeight = 50.sp,
             fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 25.dp)
+            textAlign = TextAlign.Center
         )
 
         Text(
@@ -85,7 +84,7 @@ fun LobbyScreen(
 
         StickerAndName(
             size = StickerSize.SHOWCASE,
-            displayName = viewModel?.currentPlayer?.displayName?.value,
+            displayName = viewModel?.currentPlayer?.displayName?.value ?: "my_nickname",
             // TODO: once done, change ViewModel? to ViewModel in LobbyScreen parameters
         )
 
@@ -93,10 +92,10 @@ fun LobbyScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp),
+                .height(240.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (viewModel?.players.isNullOrEmpty()) {
+            if (viewModel?.players.isNullOrEmpty() || viewModel?.players?.size == 1) {
                 Box(
                     modifier = Modifier.fillMaxSize().border(width = 1.dp, color = Color.Black),
                     contentAlignment = Alignment.Center,
@@ -114,43 +113,74 @@ fun LobbyScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     viewModel?.players?.forEach { player ->
-                        StickerAndName(size = StickerSize.REGULAR, displayName = player.displayName.value)
+                        if (player.displayName.value != viewModel?.currentPlayer?.displayName?.value)
+                            StickerAndName(size = StickerSize.REGULAR, displayName = player.displayName.value)
                     }
                 }
             }
         }
 
-        ActionButton(
-            onClick = {}, // TODO: write ready logic
-            buttonText = "READY",
-            modifier = Modifier.width(250.dp)
-        )
+        Spacer(modifier = Modifier.weight(1f))
 
-        Button(
-            onClick = {
-                viewModel?.leaveLobby(
-                    onSuccess = onLeave,
-                    onError = { errorMessage = it }
-                ) ?: onLeave()
-            },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = ButtonColors.SECONDARY.value
-            ),
-            shape = RectangleShape,
-            elevation = ButtonDefaults.buttonElevation(
-                defaultElevation = 8.dp,
-                pressedElevation = 3.dp,
-                disabledElevation = 0.dp
-            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp) // Gap between buttons
         ) {
-            Text(
-                text = "LEAVE",
-                fontWeight = FontWeight.SemiBold,
-                fontSize = TextSize.SUBTITLE.value,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(7.dp)
-            )
+            // Leave Button takes ~35% of row space
+            Button(
+                onClick = {
+                    viewModel?.leaveLobby(
+                        onSuccess = onLeave,
+                        onError = { errorMessage = it }
+                    ) ?: onLeave()
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ButtonColors.SECONDARY.value
+                ),
+                shape = RectangleShape,
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 8.dp,
+                    pressedElevation = 3.dp,
+                    disabledElevation = 0.dp
+                ),
+                modifier = Modifier.weight(0.40f) // 35% of the space
+            ) {
+                Text(
+                    text = "LEAVE",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = TextSize.SUBTITLE.value,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(vertical = 5.dp)
+                )
+            }
+
+            Button(
+                onClick = {},
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ButtonColors.ACTION.value
+                ),
+                shape = RectangleShape,
+                modifier = modifier.weight(0.60f),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 8.dp,
+                    pressedElevation = 3.dp,
+                    disabledElevation = 0.dp
+                )
+            ) {
+                Text(
+                    text = "READY",
+                    fontSize = TextSize.ACTION.value,
+                    modifier = Modifier.padding(10.dp),
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = Color.White
+                )
+            }
+
         }
+
 
         if (errorMessage.isNotEmpty()) {
             Text(

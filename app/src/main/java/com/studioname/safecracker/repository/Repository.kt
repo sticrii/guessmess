@@ -151,8 +151,14 @@ class Repository @Inject constructor() {
         val listener = ref.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 // snapshot.children is the list of all players in the lobby (JSON)
-                val players = snapshot.children.mapNotNull {
-                    it.getValue(Player::class.java) // deserialize (JSON -> object)
+                val players = snapshot.children.mapNotNull { child ->
+                    val id = child.key ?: return@mapNotNull null
+                    val name = child.child("name").getValue(String::class.java) ?: return@mapNotNull null
+                    try {
+                        Player(id = PlayerId(id), displayName = DisplayName(name))
+                    } catch (e: Exception) {
+                        null
+                    }
                 }
                 trySend(players) // translates to flow style
             }
