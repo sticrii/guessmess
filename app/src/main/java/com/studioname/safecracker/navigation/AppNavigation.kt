@@ -8,11 +8,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.studioname.safecracker.ui.DisplayNameScreen
+import com.studioname.safecracker.ui.LobbyScreen
 import com.studioname.safecracker.ui.MainMenuScreen
-import com.studioname.safecracker.ui.RoomLobbyScreen
 import com.studioname.safecracker.viewmodel.DisplayNameVM
+import com.studioname.safecracker.viewmodel.LobbyVM
 import com.studioname.safecracker.viewmodel.MainMenuVM
-import com.studioname.safecracker.viewmodel.RoomLobbyVM
 
 @Composable
 fun AppNavigation() {
@@ -29,20 +29,20 @@ fun AppNavigation() {
             MainMenuScreen(
                 viewModel = viewModel,
                 onLobbyJoined = { code ->
-                    navController.navigate("room_lobby/$code")
+                    navController.navigate("lobby/$code")
                 }
             )
         }
 
         composable(
-            route = "room_lobby/{roomCode}",
-            arguments = listOf(navArgument("roomCode") { type = NavType.StringType })
+            route = "lobby/{lobbyCode}",
+            arguments = listOf(navArgument("lobbyCode") { type = NavType.StringType })
         ) { backStackEntry ->
-            val roomCode = backStackEntry.arguments?.getString("roomCode").orEmpty()
-            val viewModel: RoomLobbyVM = hiltViewModel()
+            val lobbyCode = backStackEntry.arguments?.getString("lobbyCode").orEmpty()
+            val viewModel: LobbyVM = hiltViewModel()
 
-            RoomLobbyScreen(
-                roomCode = roomCode,
+            LobbyScreen(
+                lobbyCode = lobbyCode,
                 viewModel = viewModel,
                 onLeave = {
                     navController.popBackStack()

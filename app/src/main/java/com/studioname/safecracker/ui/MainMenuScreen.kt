@@ -31,8 +31,9 @@ import com.studioname.safecracker.viewmodel.MainMenuVM
 fun MainMenuScreen(
     viewModel: MainMenuVM?,
     onLobbyJoined: (String) -> Unit = {},
-    modifier: Modifier = Modifier) {
-    var roomCode by remember { mutableStateOf("") }
+    modifier: Modifier = Modifier
+) {
+    var lobbyCode by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
 
     Column(
@@ -53,7 +54,6 @@ fun MainMenuScreen(
                     onError = { error ->
                         message = error
                     }
-
                 )
             },
             buttonText = "CREATE LOBBY",
@@ -86,17 +86,17 @@ fun MainMenuScreen(
                     focusedContainerColor = Color.Gray,
                     unfocusedContainerColor = Color.LightGray,
                 ),
-                value = roomCode,
-                onValueChange = { roomCode = it },
+                value = lobbyCode,
+                onValueChange = { lobbyCode = it },
                 modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 20.dp)
             )
 
             ActionButton(
                 onClick = {
                     viewModel?.joinLobby(
-                        roomCode = roomCode,
+                        lobbyCode = lobbyCode,
                         onSuccess = {
-                            onLobbyJoined(roomCode.trim())
+                            onLobbyJoined(lobbyCode.trim())
                         },
                         onError = { error ->
                             message = error

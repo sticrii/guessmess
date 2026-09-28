@@ -1,6 +1,5 @@
 package com.studioname.safecracker.viewmodel
 
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.studioname.safecracker.repository.Repository
@@ -8,11 +7,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-
 @HiltViewModel
 class MainMenuVM @Inject constructor(
     private val repository: Repository
-    ):ViewModel() {
+) : ViewModel() {
+
     fun createLobby(
         onSuccess: (String) -> Unit,
         onError: (String) -> Unit
@@ -24,8 +23,8 @@ class MainMenuVM @Inject constructor(
                     onError("Player not found.")
                     return@launch
                 }
-                val roomCode = repository.createLobby(player)
-                onSuccess(roomCode)
+                val lobbyCode = repository.createLobby(player)
+                onSuccess(lobbyCode)
             } catch (e: Exception) {
                 onError(e.message ?: "Lobby couldn't be created.")
             }
@@ -33,7 +32,7 @@ class MainMenuVM @Inject constructor(
     }
 
     fun joinLobby(
-        roomCode: String,
+        lobbyCode: String,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
@@ -46,7 +45,7 @@ class MainMenuVM @Inject constructor(
                     return@launch
                 }
 
-                repository.joinLobby(roomCode, player)
+                repository.joinLobby(lobbyCode, player)
                 onSuccess()
 
             } catch (e: Exception) {

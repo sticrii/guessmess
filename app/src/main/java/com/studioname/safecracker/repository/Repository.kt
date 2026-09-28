@@ -61,16 +61,16 @@ class Repository @Inject constructor() {
         )
     }
 
-    suspend fun createLobby(player: Player): String{
-        var roomCode: String
+    suspend fun createLobby(player: Player): String {
+        var lobbyCode: String
 
         do {
-            roomCode = (100000..999999).random().toString()
-            val roomExists = db.child("rooms").child(roomCode)
+            lobbyCode = (100000..999999).random().toString()
+            val lobbyExists = db.child("lobbies").child(lobbyCode)
                 .get().await().exists()
             //to do: napraviti pouzdaniju proveru
 
-        } while(roomExists)
+        } while (lobbyExists)
 
         val lobby = mapOf(
             "phase" to "LOBBY",
@@ -80,40 +80,41 @@ class Repository @Inject constructor() {
                 player.id.value to createPlayerData(player)
             )
         )
-        db.child("rooms").child(roomCode).setValue(lobby).await()
-        return roomCode
+        db.child("lobbies").child(lobbyCode).setValue(lobby).await()
+        return lobbyCode
     }
 
-    suspend fun joinLobby(roomCode: String, player: Player){
-        val code = roomCode.trim()
+    suspend fun joinLobby(lobbyCode: String, player: Player) {
+        val code = lobbyCode.trim()
 
         if (code.length != 6 || !code.all { it.isDigit() }) {
             error("Code must have 6 digits.")
         }
 
-        val roomReference = db.child("rooms").child(code)
-        val roomSnapshot = roomReference.get().await()
+        val lobbyReference = db.child("lobbies").child(code)
+        val lobbySnapshot = lobbyReference.get().await()
 
-        if (!roomSnapshot.exists()) {
-            error("A room with that code doesn't exist.")
+        if (!lobbySnapshot.exists()) {
+            error("A lobby with that code doesn't exist.")
         }
 
-        val phase = roomSnapshot.child("phase")
+        val phase = lobbySnapshot.child("phase")
             .getValue(String::class.java)
 
         if (phase != "LOBBY") {
-            error("This room is no longer accepting players.")
+            error("This lobby is no longer accepting players.")
         }
 
-        roomReference
+        lobbyReference
             .child("players").child(player.id.value)
             .setValue(createPlayerData(player)).await()
     }
-    suspend fun leaveLobby(roomCode: String, playerId: String) {
-        val roomReference = db.child("rooms").child(roomCode.trim())
-        val playersReference = roomReference.child("players")
 
-        val currentHostId = roomReference
+    suspend fun leaveLobby(lobbyCode: String, playerId: String) {
+        val lobbyReference = db.child("lobbies").child(lobbyCode.trim())
+        val playersReference = lobbyReference.child("players")
+
+        val currentHostId = lobbyReference
             .child("hostId")
             .get().await().getValue(String::class.java)
 
@@ -123,12 +124,12 @@ class Repository @Inject constructor() {
         val nextHostId = playersSnapshot.children.firstOrNull()?.key
 
         if (nextHostId == null) {
-            roomReference.removeValue().await()
+            lobbyReference.removeValue().await()
             return
         }
 
         if (currentHostId == playerId) {
-            roomReference.child("hostId").setValue(nextHostId).await()
+            lobbyReference.child("hostId").setValue(nextHostId).await()
         }
     }
 }
