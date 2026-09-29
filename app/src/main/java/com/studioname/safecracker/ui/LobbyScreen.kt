@@ -41,6 +41,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -59,6 +60,13 @@ fun LobbyScreen(
 ) {
     var errorMessage by remember { mutableStateOf("") }
     val isHost = viewModel?.currentPlayer?.id?.value == viewModel?.host?.id?.value
+
+    // basically says "launch this coroutine but only when the key (gameStarted) changes,
+    // not every time you draw the screen", similar to useEffect in react
+    // this is so that other players who did not hit start also get navigated to the game
+    LaunchedEffect(viewModel?.gameStarted) {
+        if (viewModel?.gameStarted == true) onStart()
+    }
 
     Column(
         modifier = modifier
@@ -160,7 +168,10 @@ fun LobbyScreen(
             }
 
             Button(
-                onClick = { onStart() },
+                onClick = {
+                    viewModel?.startGame()
+                    onStart()
+                },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = ButtonColors.ACTION.value
                 ),

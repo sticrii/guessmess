@@ -203,4 +203,24 @@ class Repository @Inject constructor() {
         // when flow stops listening, this closes teh firebase listener
         awaitClose { ref.removeEventListener(listener) }
     }
+
+    fun startGame(lobbyCode: String) {
+        val lobbyReference = this@Repository.getLobby(lobbyCode)
+
+        lobbyReference.child("phase").setValue("PICK_ROOM")
+    }
+
+    // continously listen to lobby phase change
+    fun getLobbyPhase(lobbyCode: String): Flow<String?> = callbackFlow {
+        val lobbyReference = this@Repository.getLobby(lobbyCode)
+        val ref = lobbyReference.child("phase")
+
+        val listener = ref.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                trySend(snapshot.getValue(String::class.java))
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+        awaitClose { ref.removeEventListener(listener) }
+    }
 }

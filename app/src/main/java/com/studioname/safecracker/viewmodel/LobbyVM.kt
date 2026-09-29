@@ -28,6 +28,9 @@ class LobbyVM @Inject constructor(
     var host by mutableStateOf<Player?>(null)
         private set
 
+    var gameStarted by mutableStateOf(false)
+        private set
+
     init {
         // we call this at the start to get the current player id
         viewModelScope.launch {
@@ -45,6 +48,13 @@ class LobbyVM @Inject constructor(
         viewModelScope.launch {
             repository.getLobbyHost(lobbyCode).collect { updatedHost ->
                 host = updatedHost
+            }
+        }
+
+        // listen for game start
+        viewModelScope.launch {
+            repository.getLobbyPhase(lobbyCode).collect { phase ->
+                if (phase == "GAME_STARTED") gameStarted = true
             }
         }
     }
@@ -66,6 +76,12 @@ class LobbyVM @Inject constructor(
             } catch (e: Exception) {
                 onError(e.message ?: "Couldn't leave lobby.")
             }
+        }
+    }
+
+    fun startGame() {
+        viewModelScope.launch {
+            repository.startGame(lobbyCode)
         }
     }
 }
