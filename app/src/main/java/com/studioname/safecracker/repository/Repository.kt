@@ -18,6 +18,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 @Singleton
 class Repository @Inject constructor() {
@@ -69,6 +71,47 @@ class Repository @Inject constructor() {
         )
     }
 
+    fun getLobby(lobbyCode: String): DatabaseReference {
+        val code = lobbyCode.trim()
+
+        if (code.length != 6 || !code.all { it.isDigit() }) {
+            error("Code must have 6 digits.")
+        }
+
+        val lobbyReference = db.child("lobbies").child(code)
+
+        return lobbyReference
+    }
+
+
+    // retrieves current lobby host, its a flow function because upon leaving a host can change
+    fun getLobbyHost(lobbyCode: String): Flow<Player> = callbackFlow {
+        val lobbyReference = this@Repository.getLobby(lobbyCode)
+
+        val listener = lobbyReference.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val hostId = snapshot.child("hostId").getValue(String::class.java)
+
+                if (hostId != null) {
+                    launch { // we have to launch a coroutine so we can call a suspend function
+                        try {
+                            val host = this@Repository.getPlayer(PlayerId(hostId))
+
+                            if (host != null) {
+                                trySend(host)
+                            }
+                        } catch (e: Exception) {
+                            close(e)
+                        }
+                    }
+                }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+
+        awaitClose { lobbyReference.removeEventListener(listener) }
+    }
+
     suspend fun createLobby(player: Player): String {
         var lobbyCode: String
 
@@ -93,13 +136,7 @@ class Repository @Inject constructor() {
     }
 
     suspend fun joinLobby(lobbyCode: String, player: Player) {
-        val code = lobbyCode.trim()
-
-        if (code.length != 6 || !code.all { it.isDigit() }) {
-            error("Code must have 6 digits.")
-        }
-
-        val lobbyReference = db.child("lobbies").child(code)
+        val lobbyReference = this@Repository.getLobby(lobbyCode)
         val lobbySnapshot = lobbyReference.get().await()
 
         if (!lobbySnapshot.exists()) {
@@ -119,12 +156,10 @@ class Repository @Inject constructor() {
     }
 
     suspend fun leaveLobby(lobbyCode: String, playerId: String) {
-        val lobbyReference = db.child("lobbies").child(lobbyCode.trim())
+        val lobbyReference = this@Repository.getLobby(lobbyCode)
         val playersReference = lobbyReference.child("players")
 
-        val currentHostId = lobbyReference
-            .child("hostId")
-            .get().await().getValue(String::class.java)
+        val currentHost = this@Repository.getLobbyHost(lobbyCode).first() // .first() so we get only 1 value, since Flow<Player> is a stream of data
 
         playersReference.child(playerId).removeValue().await()
 
@@ -136,7 +171,7 @@ class Repository @Inject constructor() {
             return
         }
 
-        if (currentHostId == playerId) {
+        if (currentHost.id.value == playerId) {
             lobbyReference.child("hostId").setValue(nextHostId).await()
         }
     }

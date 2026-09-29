@@ -54,6 +54,7 @@ import com.studioname.safecracker.ui.components.StickerAndName
 fun LobbyScreen(
     viewModel: LobbyVM?,
     onLeave: () -> Unit = {},
+    onStart: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var errorMessage by remember { mutableStateOf("") }
@@ -67,7 +68,7 @@ fun LobbyScreen(
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Text(
-            text = "HOST_NAME'S PARTY",
+            text = "${viewModel?.host?.displayName?.value?.uppercase() ?: "HOST_NAME"}'S PARTY",
             color = Color.White,
             fontSize = TextSize.TITLE.value,
             lineHeight = 50.sp,
@@ -76,7 +77,7 @@ fun LobbyScreen(
         )
 
         Text(
-            text = "PARTY CODE: ${viewModel?.lobbyCode}",
+            text = "PARTY CODE: ${viewModel?.lobbyCode ?: "123456"}",
             fontWeight = FontWeight.Medium,
             color = Color.White,
             fontSize = 20.sp
@@ -95,7 +96,7 @@ fun LobbyScreen(
                 .height(240.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (viewModel?.players.isNullOrEmpty() || viewModel?.players?.size == 1) {
+            if (viewModel?.players.isNullOrEmpty() || viewModel.players.size == 1) {
                 Box(
                     modifier = Modifier.fillMaxSize().border(width = 1.dp, color = Color.Black),
                     contentAlignment = Alignment.Center,
@@ -112,8 +113,8 @@ fun LobbyScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    viewModel?.players?.forEach { player ->
-                        if (player.displayName.value != viewModel?.currentPlayer?.displayName?.value)
+                    viewModel.players.forEach { player ->
+                        if (player.displayName.value != viewModel.currentPlayer?.displayName?.value)
                             StickerAndName(size = StickerSize.REGULAR, displayName = player.displayName.value)
                     }
                 }
@@ -128,7 +129,6 @@ fun LobbyScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp) // Gap between buttons
         ) {
-            // Leave Button takes ~35% of row space
             Button(
                 onClick = {
                     viewModel?.leaveLobby(
@@ -158,7 +158,7 @@ fun LobbyScreen(
             }
 
             Button(
-                onClick = {},
+                onClick = { onStart() },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = ButtonColors.ACTION.value
                 ),
@@ -168,10 +168,11 @@ fun LobbyScreen(
                     defaultElevation = 8.dp,
                     pressedElevation = 3.dp,
                     disabledElevation = 0.dp
-                )
+                ),
+                enabled = viewModel?.currentPlayer?.id?.value == viewModel?.host?.id?.value
             ) {
                 Text(
-                    text = "READY",
+                    text = "START",
                     fontSize = TextSize.ACTION.value,
                     modifier = Modifier.padding(10.dp),
                     fontWeight = FontWeight.Bold,

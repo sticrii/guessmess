@@ -38,12 +38,18 @@ fun AppNavigation() {
             route = "lobby/{lobbyCode}",
             arguments = listOf(navArgument("lobbyCode") { type = NavType.StringType })
         ) { backStackEntry ->
+            val lobbyCode = backStackEntry.arguments?.getString("lobbyCode") ?: ""
             val viewModel: LobbyVM = hiltViewModel()
 
             LobbyScreen(
                 viewModel = viewModel,
                 onLeave = {
                     navController.popBackStack()
+                },
+                onStart = {
+                    navController.navigate("lobby/$lobbyCode/pickRoom") {
+                        popUpTo("lobby/$lobbyCode") { inclusive = true } // so that we cant simply go back to lobby
+                    }
                 }
             )
         }
