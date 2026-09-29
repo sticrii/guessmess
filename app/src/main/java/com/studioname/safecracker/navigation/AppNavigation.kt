@@ -53,5 +53,12 @@ fun AppNavigation() {
                 }
             )
         }
+
+        composable(
+            route = "lobby/{lobbyCode}/pickRoom",
+            arguments = listOf(navArgument("lobbyCode") { type = NavType.StringType })
+        ) { backStackEntry ->
+            // TODO: build the composable and screen
+        }
     }
 }

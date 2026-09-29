@@ -58,6 +58,8 @@ fun LobbyScreen(
     modifier: Modifier = Modifier
 ) {
     var errorMessage by remember { mutableStateOf("") }
+    val isHost = viewModel?.currentPlayer?.id?.value == viewModel?.host?.id?.value
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -169,7 +171,7 @@ fun LobbyScreen(
                     pressedElevation = 3.dp,
                     disabledElevation = 0.dp
                 ),
-                enabled = viewModel?.currentPlayer?.id?.value == viewModel?.host?.id?.value
+                enabled = isHost
             ) {
                 Text(
                     text = "START",

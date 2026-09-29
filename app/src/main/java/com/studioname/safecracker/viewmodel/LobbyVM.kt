@@ -24,7 +24,9 @@ class LobbyVM @Inject constructor(
         private set
 
     private var currentPlayerId: String? = null
-    var host: Player? = null
+
+    var host by mutableStateOf<Player?>(null)
+        private set
 
     init {
         // we call this at the start to get the current player id
@@ -32,14 +34,17 @@ class LobbyVM @Inject constructor(
             currentPlayerId = repository.getCurrentPlayerId()
         }
 
-        // get all players and update host
+        // update all players
         viewModelScope.launch {
-            repository.getLobbyPlayers(lobbyCode).collect { players ->
-                this@LobbyVM.players = players
+            repository.getLobbyPlayers(lobbyCode).collect { updatedPlayers ->
+                players = updatedPlayers
             }
+        }
 
-            repository.getLobbyHost(lobbyCode).collect { host ->
-                this@LobbyVM.host = host
+        // get current host
+        viewModelScope.launch {
+            repository.getLobbyHost(lobbyCode).collect { updatedHost ->
+                host = updatedHost
             }
         }
     }
