@@ -20,6 +20,8 @@ import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import com.google.firebase.database.MutableData
+import com.google.firebase.database.Transaction
 
 @Singleton
 class Repository @Inject constructor() {
@@ -92,6 +94,14 @@ class Repository @Inject constructor() {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val hostId = snapshot.child("hostId").getValue(String::class.java)
 
+                if (
+                    hostId == null ||
+                    !snapshot.child("players").child(hostId).exists()
+                ) {
+                    this@Repository.promoteHostIfMissing(lobbyCode)
+                    return
+                }
+
                 if (hostId != null) {
                     launch { // we have to launch a coroutine so we can call a suspend function
                         try {
@@ -110,6 +120,45 @@ class Repository @Inject constructor() {
         })
 
         awaitClose { lobbyReference.removeEventListener(listener) }
+    }
+
+
+    private fun promoteHostIfMissing(lobbyCode: String) {
+        val lobbyReference = getLobby(lobbyCode)
+
+        lobbyReference.runTransaction(object : Transaction.Handler {
+            override fun doTransaction(currentData: MutableData): Transaction.Result {
+                if (currentData.value == null) return Transaction.abort()
+
+                val players = currentData.child("players")
+                val currentHostId =
+                    currentData.child("hostId").getValue(String::class.java)
+
+                if (
+                    currentHostId != null &&
+                    players.child(currentHostId).value != null
+                ) {
+                    return Transaction.abort()
+                }
+
+                // host missing - another player takees the role
+                val nextHostId = players.children.firstOrNull()?.key
+                    ?: return Transaction.abort()
+
+                currentData.child("hostId").value = nextHostId
+                return Transaction.success(currentData)
+            }
+
+            override fun onComplete(
+                error: DatabaseError?,
+                committed: Boolean,
+                currentData: DataSnapshot?
+            ) {
+                if (error != null) {
+                    println("[ERROR]: Failed to promote lobby host: ${error.message}")
+                }
+            }
+        })
     }
 
     suspend fun createLobby(player: Player): String {
@@ -131,7 +180,14 @@ class Repository @Inject constructor() {
                 player.id.value to createPlayerData(player)
             )
         )
-        db.child("lobbies").child(lobbyCode).setValue(lobby).await()
+        val lobbyReference = db.child("lobbies").child(lobbyCode)
+        val playerReference =
+            lobbyReference.child("players").child(player.id.value)
+
+        //deleting players from lobby if they close app
+
+        playerReference.onDisconnect().removeValue().await()
+        lobbyReference.setValue(lobby).await()
         return lobbyCode
     }
 
@@ -152,7 +208,17 @@ class Repository @Inject constructor() {
 
         lobbyReference
             .child("players").child(player.id.value)
-            .setValue(createPlayerData(player)).await()
+            .onDisconnect().removeValue().await()
+
+        //firebase registers disconnection/closing app and deletes player
+
+        lobbyReference.updateChildren(
+            mapOf(
+                "players/${player.id.value}" to createPlayerData(player),
+                "emptySince" to null
+                //assigns player to the lobby and deletes empty since
+            )
+        ).await()
     }
 
     suspend fun leaveLobby(lobbyCode: String, playerId: String) {
@@ -167,7 +233,11 @@ class Repository @Inject constructor() {
         val nextHostId = playersSnapshot.children.firstOrNull()?.key
 
         if (nextHostId == null) {
-            lobbyReference.removeValue().await()
+            lobbyReference
+                .child("emptySince")
+                .setValue(com.google.firebase.database.ServerValue.TIMESTAMP)
+                .await()
+                //not deleting the lobby, marks the start time for timeout
             return
         }
 
@@ -202,6 +272,48 @@ class Repository @Inject constructor() {
 
         // when flow stops listening, this closes teh firebase listener
         awaitClose { ref.removeEventListener(listener) }
+    }
+
+
+    suspend fun cleanupExpiredEmptyLobbies() {
+        val lobbiesReference = db.child("lobbies")
+        val lobbiesSnapshot = lobbiesReference.get().await()
+        val now = System.currentTimeMillis()
+        val timeoutMillis = 15 * 60 * 1000L
+
+        lobbiesSnapshot.children.forEach { lobby ->
+            val lobbyCode = lobby.key ?: return@forEach
+
+            // no deletion if lobby has players
+            if (lobby.child("players").hasChildren()) return@forEach
+
+            val lobbyReference = lobbiesReference.child(lobbyCode)
+            val emptySince =
+                lobby.child("emptySince").getValue(Long::class.java)
+
+            if (emptySince == null) {
+                // if everyone closes app, mark the time
+                lobbyReference
+                    .child("emptySince")
+                    .setValue(com.google.firebase.database.ServerValue.TIMESTAMP)
+                    .await()
+                return@forEach
+            }
+
+            if (now - emptySince >= timeoutMillis) {
+                // second check before deletion
+                val currentLobby = lobbyReference.get().await()
+                val currentEmptySince =
+                    currentLobby.child("emptySince").getValue(Long::class.java)
+
+                if (
+                    !currentLobby.child("players").hasChildren() &&
+                    currentEmptySince == emptySince
+                ) {
+                    lobbyReference.removeValue().await()
+                }
+            }
+        }
     }
 
     fun startGame(lobbyCode: String) {

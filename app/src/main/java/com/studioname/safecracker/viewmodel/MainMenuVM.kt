@@ -12,6 +12,16 @@ class MainMenuVM @Inject constructor(
     private val repository: Repository
 ) : ViewModel() {
 
+    init {
+        viewModelScope.launch {
+            try {
+                repository.cleanupExpiredEmptyLobbies()
+            } catch (e: Exception) {
+                println("[ERROR]: Failed to clean expired lobbies: ${e.message}")
+            }
+        }
+    }
+
     fun createLobby(
         onSuccess: (String) -> Unit,
         onError: (String) -> Unit
