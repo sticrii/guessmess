@@ -14,6 +14,8 @@ import com.studioname.safecracker.model.Player
 import com.studioname.safecracker.model.PlayerId
 import com.studioname.safecracker.repository.Repository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
@@ -22,13 +24,21 @@ class DisplayNameVM @Inject constructor(
     private val repository: Repository,
     private val dataStore: DataStore<Preferences>
 ) : ViewModel() {
+
+    private val displayNameKey = stringPreferencesKey("displayName")
+
+    val savedDisplayName: Flow<String> = dataStore.data
+        .map { preferences -> preferences[displayNameKey].orEmpty() }
+
+    //placeholder for saving name
+
     fun onNameConfirmed(displayName: String) {
         viewModelScope.launch {
             try {
                 val playerId = repository.getCurrentPlayerId()
 
                 // locally store the displayName
-                dataStore.edit { it[stringPreferencesKey("displayName")] = displayName }
+                dataStore.edit { it[displayNameKey] = displayName }
 
                 val player = Player(
                     id = PlayerId(playerId),

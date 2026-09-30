@@ -19,13 +19,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.studioname.safecracker.enums.TextSize
 import com.studioname.safecracker.ui.components.ActionButton
 import com.studioname.safecracker.ui.components.GameTitle
 import com.studioname.safecracker.ui.theme.SafeCrackerTheme
 import com.studioname.safecracker.viewmodel.DisplayNameVM
+import androidx.compose.runtime.collectAsState
 
 /**
  * Represents the screen where the user is tasked with entering their nickname (purely cosmetic)
@@ -40,6 +40,12 @@ fun DisplayNameScreen(
     viewModel: DisplayNameVM? = null
 ) {
     var displayName by remember { mutableStateOf("") }
+
+    val savedDisplayName = viewModel
+        ?.savedDisplayName
+        ?.collectAsState(initial = "")
+        ?.value
+        .orEmpty()
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -64,17 +70,22 @@ fun DisplayNameScreen(
                 colors = TextFieldDefaults.colors(
                     focusedTextColor = Color.Black,
                     unfocusedTextColor = Color.Black,
-
                     focusedContainerColor = Color.Gray,
                     unfocusedContainerColor = Color.LightGray,
                 ),
                 value = displayName,
-                onValueChange = { displayName = it }
+                onValueChange = { displayName = it },
+                placeholder = {
+                    if (savedDisplayName.isNotBlank()) {
+                        Text(savedDisplayName)
+                    }
+                }
             )
 
             ActionButton(
                 onClick = {
-                    viewModel?.onNameConfirmed(displayName)
+                    val nameToConfirm = displayName.ifBlank { savedDisplayName }
+                    viewModel?.onNameConfirmed(nameToConfirm)
 
                     navController?.navigate("main_menu") {
                         popUpTo("display_name") { inclusive = true } // disables back button
