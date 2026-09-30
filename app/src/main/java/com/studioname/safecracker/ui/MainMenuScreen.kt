@@ -87,16 +87,23 @@ fun MainMenuScreen(
                     unfocusedContainerColor = Color.LightGray,
                 ),
                 value = lobbyCode,
-                onValueChange = { lobbyCode = it },
+                onValueChange = { input ->
+                    lobbyCode = input
+                        .uppercase()
+                        .filter { it in "23456789EHKNRWXYZ" }
+                        .take(6)
+                },
                 modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 20.dp)
             )
 
             ActionButton(
                 onClick = {
+                    val code = lobbyCode.trim().uppercase()
+
                     viewModel?.joinLobby(
-                        lobbyCode = lobbyCode,
+                        lobbyCode = code,
                         onSuccess = {
-                            onLobbyJoined(lobbyCode.trim())
+                            onLobbyJoined(code)
                         },
                         onError = { error ->
                             message = error

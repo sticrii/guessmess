@@ -27,6 +27,11 @@ import com.google.firebase.database.Transaction
 class Repository @Inject constructor() {
     private val db = Firebase.database.reference
 
+    private companion object {
+        const val LOBBY_CODE_CHARS = "23456789EHKNRWXYZ"
+        const val LOBBY_CODE_LENGTH = 6
+    }
+
     // creates a new player if one doesnt exit, else overrides the player data
     suspend fun setPlayer(player: Player) {
         val playerMap = mapOf(
@@ -74,15 +79,16 @@ class Repository @Inject constructor() {
     }
 
     fun getLobby(lobbyCode: String): DatabaseReference {
-        val code = lobbyCode.trim()
+        val code = lobbyCode.trim().uppercase()
 
-        if (code.length != 6 || !code.all { it.isDigit() }) {
-            error("Code must have 6 digits.")
+        if (
+            code.length != LOBBY_CODE_LENGTH ||
+            !code.all { it in LOBBY_CODE_CHARS }
+        ) {
+            error("Code must consist of digits and characters.")
         }
 
-        val lobbyReference = db.child("lobbies").child(code)
-
-        return lobbyReference
+        return db.child("lobbies").child(code)
     }
 
 
@@ -165,11 +171,12 @@ class Repository @Inject constructor() {
         var lobbyCode: String
 
         do {
-            lobbyCode = (100000..999999).random().toString()
+            lobbyCode = (1..LOBBY_CODE_LENGTH)
+                .map { LOBBY_CODE_CHARS.random() }
+                .joinToString("")
+
             val lobbyExists = db.child("lobbies").child(lobbyCode)
                 .get().await().exists()
-            // TODO: napraviti pouzdaniju proveru
-
         } while (lobbyExists)
 
         val lobby = mapOf(
