@@ -18,6 +18,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -27,9 +30,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.studioname.safecracker.enums.StickerSize
@@ -41,20 +47,69 @@ import com.studioname.safecracker.viewmodel.PickRoomVM
 import kotlinx.coroutines.flow.MutableStateFlow
 import com.studioname.safecracker.R
 import com.studioname.safecracker.ui.components.RoomNote
+import androidx.compose.ui.unit.IntSize
+import kotlin.math.ceil
+import kotlin.math.roundToInt
+import kotlin.random.Random
+
+
+// number of rows and columns in the grid
+private data class RoomGrid(val cols: Int, val rows: Int)
+
+
+/**
+ * Calculate the number of rows and columns in a grid given the count of rooms and
+ * box size (width and height)
+ */
+private fun computeRoomGrid(count: Int, width: Dp, height: Dp): RoomGrid {
+    if (count <= 0 || width <= 0.dp || height <= 0.dp) return RoomGrid(cols = 1, rows = 1)
+
+    val aspectRatio = width.value / height.value
+    val cols = kotlin.math.sqrt(count * aspectRatio)
+        .roundToInt()
+        .coerceIn(1, count)
+    val rows = ceil(count / cols.toFloat()).toInt()
+
+    return RoomGrid(cols, rows)
+}
+
+// data for storing jitter of each note
+private data class NoteJitter(
+    val offsetXFraction: Float,
+    val offsetYFraction: Float,
+    val rotationDegrees: Float,
+)
+
+// remember the jitters so it doesnt change upon change of screen
+@Composable
+private fun rememberNoteJitters(count: Int): List<NoteJitter> =
+    remember(count) {
+        List(count) {
+            NoteJitter(
+                offsetXFraction = Random.nextFloat() * 2f - 1f,
+                offsetYFraction = Random.nextFloat() * 2f - 1f,
+                rotationDegrees = Random.nextDouble(-8.0, 8.0).toFloat(),
+            )
+        }
+    }
 
 @Composable
-fun PickRoomScreen (
+fun PickRoomScreen(
     modifier: Modifier = Modifier,
     viewModel: PickRoomVM? = null,
 ) {
     val timeRemaining by (viewModel?.timeRemaining ?: MutableStateFlow(15)).collectAsStateWithLifecycle()
+    var boardSize by remember { mutableStateOf(IntSize.Zero) }
+    val density = LocalDensity.current // for converting the px to dp
+
+    val numberOfRooms = 6
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(Color.DarkGray)
             .safeDrawingPadding()
-            .padding(top= 24.dp),
+            .padding(top = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
@@ -105,8 +160,15 @@ fun PickRoomScreen (
                 .padding(top = 24.dp)
                 .fillMaxSize()
                 .background(color = Color(0xFFf6f6f4))
-                .clipToBounds(),
+                .clipToBounds()
+                .onGloballyPositioned { coordinates ->
+                    boardSize = coordinates.size
+                },
         ) {
+            // store dimensions in dp
+            val boardWidth: Dp = with(density) { boardSize.width.toDp() }
+            val boardHeight: Dp = with(density) { boardSize.height.toDp() }
+
             // whiteboard background
             Image(
                 painter = painterResource(id = R.drawable.whiteboard),
@@ -118,7 +180,10 @@ fun PickRoomScreen (
                     .graphicsLayer(
                         scaleX = 3.5f,
                         scaleY = 3.5f,
-                        transformOrigin = TransformOrigin(pivotFractionX = 0.2f, pivotFractionY = 0.8f)
+                        transformOrigin = TransformOrigin(
+                            pivotFractionX = 0.2f,
+                            pivotFractionY = 0.8f
+                        )
                     )
             )
 
@@ -137,60 +202,62 @@ fun PickRoomScreen (
                 )
             }
 
-            // rooms
-            RoomNote(
-                roomName = "Kitchen",
-                modifier = Modifier
-                    .size(120.dp)
-                    .offset(x = 20.dp, y = 50.dp)
-                    .clickable {} // gives us a square click target
-                    .rotate(-10f)
-            )
+            // dynamically calculated placement of notes
+            if (boardWidth > 0.dp && boardHeight > 0.dp) {
+                // padding from the edge of the board so notes don't touch it
+                // top gets more space because of the divider bars at the top of the board
+                val boardPadding = 10.dp
+                val topPadding = 40.dp
+                val usableWidth = (boardWidth - boardPadding * 2).coerceAtLeast(0.dp)
+                val usableHeight = (boardHeight - topPadding - boardPadding).coerceAtLeast(0.dp)
 
-            RoomNote(
-                roomName = "Kitchen",
-                modifier = Modifier
-                    .size(120.dp)
-                    .offset(x = 240.dp, y = 50.dp)
-                    .clickable {} // gives us a square click target
-                    .rotate(20f)
-            )
+                val grid = remember(numberOfRooms, usableWidth, usableHeight) {
+                    computeRoomGrid(numberOfRooms, usableWidth, usableHeight)
+                }
+                val jitters = rememberNoteJitters(numberOfRooms)
 
-            RoomNote(
-                roomName = "Kitchen",
-                modifier = Modifier
-                    .size(120.dp)
-                    .offset(x = 80.dp, y = 190.dp)
-                    .clickable {} // gives us a square click target
-                    .rotate(-5f)
-            )
+                val cellWidth = usableWidth / grid.cols
+                val cellHeight = usableHeight / grid.rows
 
-            RoomNote(
-                roomName = "Kitchen",
-                modifier = Modifier
-                    .size(120.dp)
-                    .offset(x = 230.dp, y = 210.dp)
-                    .clickable {} // gives us a square click target
-                    .rotate(3f)
-            )
+                // note size respective of number of notes and space
+                val noteSize = (minOf(cellWidth, cellHeight) * 0.80f).coerceIn(90.dp, 130.dp)
 
-            RoomNote(
-                roomName = "Kitchen",
-                modifier = Modifier
-                    .size(120.dp)
-                    .offset(x = 15.dp, y = 340.dp)
-                    .clickable {} // gives us a square click target
-                    .rotate(-8f)
-            )
+                val maxOffsetX = ((cellWidth - noteSize) / 2f).coerceAtLeast(0.dp) * 0.6f
+                val maxOffsetY = ((cellHeight - noteSize) / 2f).coerceAtLeast(0.dp) * 0.6f
 
-            RoomNote(
-                roomName = "Kitchen",
-                modifier = Modifier
-                    .size(120.dp)
-                    .offset(x = 180.dp, y = 340.dp)
-                    .clickable {} // gives us a square click target
-                    .rotate(8f)
-            )
+                for (i in 0 until numberOfRooms) {
+                    val row = i / grid.cols
+                    val col = i % grid.cols
+
+                    // used for centering if the row is not full
+                    val itemsInThisRow = if (row == grid.rows - 1) {
+                        numberOfRooms - grid.cols * (grid.rows - 1)
+                    } else {
+                        grid.cols
+                    }
+                    val rowWidth = cellWidth * itemsInThisRow
+                    val rowStartX = boardPadding + (usableWidth - rowWidth) / 2f
+
+                    val cellX = rowStartX + cellWidth * col
+                    val cellY = topPadding + cellHeight * row
+
+                    val baseX = cellX + (cellWidth - noteSize) / 2f
+                    val baseY = cellY + (cellHeight - noteSize) / 2f
+
+                    val jitter = jitters[i]
+                    val finalX = baseX + maxOffsetX * jitter.offsetXFraction
+                    val finalY = baseY + maxOffsetY * jitter.offsetYFraction
+
+                    RoomNote(
+                        roomName = "Test",
+                        modifier = Modifier
+                            .offset(x = finalX, y = finalY)
+                            .size(noteSize)
+                            .rotate(jitter.rotationDegrees)
+                            .clickable { }
+                    )
+                }
+            }
         }
     }
 }
