@@ -50,6 +50,7 @@ import com.studioname.safecracker.R
 import com.studioname.safecracker.enums.StickerSize
 import com.studioname.safecracker.ui.components.PlayerSticker
 import com.studioname.safecracker.ui.components.StickerAndName
+import com.studioname.safecracker.ui.components.TitleText
 
 @Composable
 fun LobbyScreen(
@@ -77,13 +78,8 @@ fun LobbyScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Text(
+        TitleText(
             text = "${viewModel?.host?.displayName?.value?.uppercase() ?: "HOST_NAME"}'S PARTY",
-            color = Color.White,
-            fontSize = TextSize.TITLE.value,
-            lineHeight = 50.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
         )
 
         Text(

@@ -5,5 +5,6 @@ import androidx.compose.ui.unit.dp
 
 enum class StickerSize(val value: Dp) {
     SHOWCASE(150.dp),
-    REGULAR(100.dp)
+    REGULAR(100.dp),
+    SMALL(80.dp)
 }
