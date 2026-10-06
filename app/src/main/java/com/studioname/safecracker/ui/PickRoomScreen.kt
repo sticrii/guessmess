@@ -102,7 +102,7 @@ fun PickRoomScreen(
     var boardSize by remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current // for converting the px to dp
 
-    val numberOfRooms = 6
+    val numberOfRooms = 6 // TODO: implement this via parameter
 
     Column(
         modifier = modifier
