@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.google.firebase.database.MutableData
 import com.google.firebase.database.Transaction
+import com.studioname.safecracker.model.Hint
 
 @Singleton
 class Repository @Inject constructor() {
@@ -342,4 +343,80 @@ class Repository @Inject constructor() {
         })
         awaitClose { ref.removeEventListener(listener) }
     }
+
+    fun getRoomHints(
+        lobbyCode: String,
+        roomName: String
+    ): Flow<List<Hint>> {
+        val roomKey = roomName
+            .trim()
+            .lowercase()
+            .replace(" ", "_")
+
+        require(roomKey.matches(Regex("^[a-z0-9_]+$"))) {
+            "Room name can only contain lowercase letters, numbers, and underscores."
+        }
+
+        val hintsReference = getLobby(lobbyCode)
+            .child("rooms")
+            .child(roomKey)
+            .child("hints")
+
+        return observeHints(hintsReference)
+
+        //Emits the hints currently available in the specified room.
+    }
+
+
+    fun getPlayerHints(
+        lobbyCode: String,
+        playerId: PlayerId
+    ): Flow<List<Hint>> {
+        val hintsReference = getLobby(lobbyCode)
+            .child("players")
+            .child(playerId.value)
+            .child("hints")
+
+        return observeHints(hintsReference)
+        //Emits the current player's private hints and updates when they change.
+    }
+
+    private fun observeHints(
+        hintsReference: DatabaseReference
+    ): Flow<List<Hint>> = callbackFlow {
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val hints = snapshot.children.mapNotNull { hintSnapshot ->
+                    val hintId = hintSnapshot.key ?: return@mapNotNull null
+                    val type = hintSnapshot.child("type")
+                        .getValue(String::class.java)
+                        ?: return@mapNotNull null
+                    val content = hintSnapshot.child("content")
+                        .getValue(String::class.java)
+                        ?: return@mapNotNull null
+
+                    Hint(
+                        id = hintId,
+                        type = type,
+                        content = content
+                    )
+                }
+
+                trySend(hints)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
+
+        hintsReference.addValueEventListener(listener)
+
+        awaitClose {
+            hintsReference.removeEventListener(listener)
+        }
+    }
+    //Converts Firebase value changes into a Flow and removes the listener
+    //when collection stops.
+
 }
