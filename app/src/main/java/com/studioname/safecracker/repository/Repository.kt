@@ -345,6 +345,38 @@ class Repository @Inject constructor() {
         awaitClose { ref.removeEventListener(listener) }
     }
 
+    // continuously listen to room choice changes
+    fun getPlayerRooms(lobbyCode: String): Flow<Map<String, String>> = callbackFlow {
+        val lobbyReference = this@Repository.getLobby(lobbyCode)
+        val ref = lobbyReference.child("roomChoices")
+
+        val listener = ref.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val roomChoices = mutableMapOf<String, String>()
+
+                for (child in snapshot.children) {
+                    val playerId = child.key ?: continue
+                    val roomId = child.getValue(String::class.java) ?: continue
+                    roomChoices[playerId] = roomId
+                }
+
+                trySend(roomChoices)
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+        awaitClose { ref.removeEventListener(listener) }
+    }
+
+    fun setPlayerRoom(lobbyCode: String, playerId: PlayerId, roomName: String) {
+        val lobbyReference = this@Repository.getLobby(lobbyCode)
+
+        lobbyReference
+            .child("roomChoices")
+            .child(playerId.value)
+            .setValue(roomName)
+    }
+
+    //Emits the hints currently available in the specified room.
     fun getRoomHints(
         lobbyCode: String,
         roomName: String
@@ -364,11 +396,9 @@ class Repository @Inject constructor() {
             .child("hints")
 
         return observeHints(hintsReference)
-
-        //Emits the hints currently available in the specified room.
     }
 
-
+    //Emits the current player's private hints and updates when they change.
     fun getPlayerHints(
         lobbyCode: String,
         playerId: PlayerId
@@ -379,9 +409,10 @@ class Repository @Inject constructor() {
             .child("hints")
 
         return observeHints(hintsReference)
-        //Emits the current player's private hints and updates when they change.
     }
 
+    //Converts Firebase value changes into a Flow and removes the listener
+    //when collection stops.
     private fun observeHints(
         hintsReference: DatabaseReference
     ): Flow<List<Hint>> = callbackFlow {
@@ -417,36 +448,75 @@ class Repository @Inject constructor() {
             hintsReference.removeEventListener(listener)
         }
     }
-    //Converts Firebase value changes into a Flow and removes the listener
-    //when collection stops.
-// continuously listen to room choice changes
-    fun getPlayerRooms(lobbyCode: String): Flow<Map<String, String>> = callbackFlow {
-        val lobbyReference = this@Repository.getLobby(lobbyCode)
-        val ref = lobbyReference.child("roomChoices")
 
-        val listener = ref.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val roomChoices = mutableMapOf<String, String>()
 
-                for (child in snapshot.children) {
-                    val playerId = child.key ?: continue
-                    val roomId = child.getValue(String::class.java) ?: continue
-                    roomChoices[playerId] = roomId
+    // Moves one hint from the room to the player's hand if there is space.
+    fun takeHintFromRoom(
+        lobbyCode: String,
+        roomName: String,
+        playerId: PlayerId,
+        hintId: String,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        val roomKey = roomName
+            .trim()
+            .lowercase()
+            .replace(" ", "_")
+
+        getLobby(lobbyCode).runTransaction(object : Transaction.Handler {
+            override fun doTransaction(currentData: MutableData): Transaction.Result {
+                val roomHint = currentData
+                    .child("rooms")
+                    .child(roomKey)
+                    .child("hints")
+                    .child(hintId)
+
+                val type = roomHint.child("type").getValue(String::class.java)
+                    ?: return Transaction.abort()
+
+                val content = roomHint.child("content").getValue(String::class.java)
+                    ?: return Transaction.abort()
+
+                val playerHints = currentData
+                    .child("players")
+                    .child(playerId.value)
+                    .child("hints")
+
+                if (playerHints.children.count() >= 3) {
+                    return Transaction.abort()
                 }
 
-                trySend(roomChoices)
+                roomHint.value = null
+                playerHints.child(hintId).value = mapOf(
+                    "type" to type,
+                    "content" to content
+                )
+
+                return Transaction.success(currentData)
             }
-            override fun onCancelled(error: DatabaseError) {}
+
+            override fun onComplete(
+                error: DatabaseError?,
+                committed: Boolean,
+                currentData: DataSnapshot?
+            ) {
+                when {
+                    error != null ->
+                        onResult(Result.failure(error.toException()))
+
+                    committed ->
+                        onResult(Result.success(Unit))
+
+                    else ->
+                        onResult(
+                            Result.failure(
+                                IllegalStateException(
+                                    "Hint is unavailable or your hand is full."
+                                )
+                            )
+                        )
+                }
+            }
         })
-        awaitClose { ref.removeEventListener(listener) }
-    }
-
-    fun setPlayerRoom(lobbyCode: String, playerId: PlayerId, roomName: String) {
-        val lobbyReference = this@Repository.getLobby(lobbyCode)
-
-        lobbyReference
-            .child("roomChoices")
-            .child(playerId.value)
-            .setValue(roomName)
     }
 }
