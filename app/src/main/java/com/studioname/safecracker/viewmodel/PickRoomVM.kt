@@ -1,6 +1,5 @@
 package com.studioname.safecracker.viewmodel
 
-import androidx.compose.runtime.currentRecomposeScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -9,7 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.studioname.safecracker.model.Player
 import com.studioname.safecracker.model.PlayerId
-import com.studioname.safecracker.repository.Repository
+import com.studioname.safecracker.repository.PickRoomRepository
 import com.studioname.safecracker.usecase.CountdownUC
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +19,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PickRoomVM @Inject constructor(
-    private val repository: Repository,
+    private val repository: PickRoomRepository,
     private val countdown: CountdownUC,
     private val savedStateHandle: SavedStateHandle
 ): ViewModel() {
@@ -31,8 +30,6 @@ class PickRoomVM @Inject constructor(
     private var currentPlayerId: String? = null
     val initialTime = 15 // seconds TODO: replace with the value you get from firebase phaseStartTime
 
-    // MutableStateFlow - a thread-safe data holder and hot stream in Kotlin that stores a single,
-    // current value and shares it with multiple observers
     private val _timeRemaining = MutableStateFlow(initialTime)
     val timeRemaining: StateFlow<Int> = _timeRemaining.asStateFlow()
 
@@ -76,6 +73,7 @@ class PickRoomVM @Inject constructor(
         try {
             val playerRoom = playerRooms.value.get(currentPlayerId)
 
+            repository.changePhase(lobbyCode)
             destinationRoom = playerRoom ?: "test"
         } catch (e: Exception) {
             println("[ERROR]: Player ID not found ${e.message}")
