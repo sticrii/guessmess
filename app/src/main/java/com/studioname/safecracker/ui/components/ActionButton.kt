@@ -30,7 +30,7 @@ fun ActionButton(onClick: () -> Unit, buttonText: String, modifier: Modifier = M
             containerColor = ButtonColors.ACTION.value
         ),
         shape = RectangleShape,
-        modifier = modifier.padding(top = 20.dp, start = 20.dp, end = 20.dp),
+        modifier = modifier,
         elevation = ButtonDefaults.buttonElevation(
             defaultElevation = 8.dp,
             pressedElevation = 3.dp,

@@ -21,6 +21,8 @@ class PickRoomRepository @Inject constructor(
 
     fun getLobbyPlayers(lobbyCode: String): Flow<List<Player>> = mainRepository.getLobbyPlayers(lobbyCode)
 
+    suspend fun leaveLobby(lobbyCode: String, playerId: String) = mainRepository.leaveLobby(lobbyCode, playerId)
+
     fun getPlayerRooms(lobbyCode: String): Flow<Map<String, String>> = callbackFlow {
         val lobbyReference = mainRepository.getLobby(lobbyCode)
         val ref = lobbyReference.child("roomChoices")

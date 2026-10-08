@@ -20,26 +20,7 @@ class LobbyRepository @Inject constructor(
 
     fun getLobbyPhase(lobbyCode: String): Flow<String?> = mainRepository.getLobbyPhase(lobbyCode)
 
-    suspend fun leaveLobby(lobbyCode: String, playerId: String) {
-        val lobbyReference = mainRepository.getLobby(lobbyCode)
-        val playersReference = lobbyReference.child("players")
-
-        val currentHost = mainRepository.getLobbyHost(lobbyCode).first()
-
-        playersReference.child(playerId).removeValue().await()
-
-        val playersSnapshot = playersReference.get().await()
-        val nextHostId = playersSnapshot.children.firstOrNull()?.key
-
-        if (nextHostId == null) {
-            lobbyReference.child("emptySince").setValue(ServerValue.TIMESTAMP).await()
-            return
-        }
-
-        if (currentHost.id.value == playerId) {
-            lobbyReference.child("hostId").setValue(nextHostId).await()
-        }
-    }
+    suspend fun leaveLobby(lobbyCode: String, playerId: String) = mainRepository.leaveLobby(lobbyCode, playerId)
 
     fun startGame(lobbyCode: String) {
         val lobbyReference = mainRepository.getLobby(lobbyCode)

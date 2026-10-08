@@ -83,4 +83,19 @@ class PickRoomVM @Inject constructor(
     fun pickRoom(roomName: String) {
         currentPlayerId?.let { repository.setPlayerRoom(lobbyCode, PlayerId(it), roomName) }
     }
+
+    fun leaveLobby(
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val playerId = repository.getCurrentPlayerId()
+                repository.leaveLobby(lobbyCode, playerId)
+                onSuccess()
+            } catch (e: Exception) {
+                onError(e.message ?: "Couldn't leave lobby.")
+            }
+        }
+    }
 }

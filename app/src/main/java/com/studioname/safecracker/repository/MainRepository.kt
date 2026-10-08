@@ -10,6 +10,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.MutableData
+import com.google.firebase.database.ServerValue
 import com.google.firebase.database.Transaction
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.database
@@ -20,6 +21,7 @@ import com.studioname.safecracker.model.PlayerId
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -158,5 +160,26 @@ class MainRepository @Inject constructor(
             override fun onCancelled(error: DatabaseError) {}
         })
         awaitClose { ref.removeEventListener(listener) }
+    }
+
+    suspend fun leaveLobby(lobbyCode: String, playerId: String) {
+        val lobbyReference = this@MainRepository.getLobby(lobbyCode)
+        val playersReference = lobbyReference.child("players")
+
+        val currentHost = this@MainRepository.getLobbyHost(lobbyCode).first()
+
+        playersReference.child(playerId).removeValue().await()
+
+        val playersSnapshot = playersReference.get().await()
+        val nextHostId = playersSnapshot.children.firstOrNull()?.key
+
+        if (nextHostId == null) {
+            lobbyReference.child("emptySince").setValue(ServerValue.TIMESTAMP).await()
+            return
+        }
+
+        if (currentHost.id.value == playerId) {
+            lobbyReference.child("hostId").setValue(nextHostId).await()
+        }
     }
 }

@@ -65,7 +65,12 @@ fun AppNavigation() {
 
             PickRoomScreen(
                 viewModel = viewModel,
-                navigateToRoom = { roomName -> navController.navigate("lobby/$lobbyCode/$roomName")}
+                navigateToRoom = { roomName -> navController.navigate("lobby/$lobbyCode/$roomName")},
+                onLeave = {
+                    navController.navigate("main_menu") {
+                        popUpTo("main_menu") { inclusive = true}
+                    }
+                }
             )
         }
 
