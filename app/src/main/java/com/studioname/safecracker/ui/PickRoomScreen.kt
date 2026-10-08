@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -95,14 +96,20 @@ private fun rememberNoteJitters(count: Int): List<NoteJitter> =
 
 @Composable
 fun PickRoomScreen(
-    modifier: Modifier = Modifier,
     viewModel: PickRoomVM? = null,
+    navigateToRoom: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val timeRemaining by (viewModel?.timeRemaining ?: MutableStateFlow(15)).collectAsStateWithLifecycle()
     var boardSize by remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current // for converting the px to dp
 
-    val numberOfRooms = 6 // TODO: implement this via parameter
+    val numberOfRooms = 5 // TODO: implement this via parameter
+
+    // when destination room is set, we will call navigate to room
+    LaunchedEffect(viewModel?.destinationRoom) {
+        viewModel?.destinationRoom?.let { navigateToRoom(it) }
+    }
 
     Column(
         modifier = modifier
@@ -130,7 +137,7 @@ fun PickRoomScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             val playersList = viewModel?.players
-            if (playersList.isNullOrEmpty() || playersList.size == 1) {
+            if (playersList.isNullOrEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
@@ -159,7 +166,7 @@ fun PickRoomScreen(
             modifier = Modifier
                 .padding(top = 24.dp)
                 .fillMaxSize()
-                .background(color = Color(0xFFf6f6f4))
+                .background(color = Color(0xFFF6F6F4))
                 .clipToBounds()
                 .onGloballyPositioned { coordinates ->
                     boardSize = coordinates.size
@@ -226,6 +233,7 @@ fun PickRoomScreen(
                 val maxOffsetY = ((cellHeight - noteSize) / 2f).coerceAtLeast(0.dp) * 0.6f
 
                 for (i in 0 until numberOfRooms) {
+                    val roomName = "test" // TODO: replace this with gathering actual room names
                     val row = i / grid.cols
                     val col = i % grid.cols
 
@@ -249,12 +257,14 @@ fun PickRoomScreen(
                     val finalY = baseY + maxOffsetY * jitter.offsetYFraction
 
                     RoomNote(
-                        roomName = "Test",
+                        roomName = roomName,
                         modifier = Modifier
                             .offset(x = finalX, y = finalY)
                             .size(noteSize)
                             .rotate(jitter.rotationDegrees)
-                            .clickable { }
+                            .clickable {
+                                viewModel?.pickRoom(roomName)
+                            }
                     )
                 }
             }
@@ -266,6 +276,6 @@ fun PickRoomScreen(
 @Composable
 fun PickRoomScreenPreview() {
     SafeCrackerTheme {
-        PickRoomScreen()
+        PickRoomScreen(navigateToRoom = {})
     }
 }

@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.google.firebase.database.MutableData
 import com.google.firebase.database.Transaction
+import com.google.firebase.database.ServerValue
 import com.studioname.safecracker.model.Hint
 
 @Singleton
@@ -418,5 +419,34 @@ class Repository @Inject constructor() {
     }
     //Converts Firebase value changes into a Flow and removes the listener
     //when collection stops.
+// continuously listen to room choice changes
+    fun getPlayerRooms(lobbyCode: String): Flow<Map<String, String>> = callbackFlow {
+        val lobbyReference = this@Repository.getLobby(lobbyCode)
+        val ref = lobbyReference.child("roomChoices")
 
+        val listener = ref.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val roomChoices = mutableMapOf<String, String>()
+
+                for (child in snapshot.children) {
+                    val playerId = child.key ?: continue
+                    val roomId = child.getValue(String::class.java) ?: continue
+                    roomChoices[playerId] = roomId
+                }
+
+                trySend(roomChoices)
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+        awaitClose { ref.removeEventListener(listener) }
+    }
+
+    fun setPlayerRoom(lobbyCode: String, playerId: PlayerId, roomName: String) {
+        val lobbyReference = this@Repository.getLobby(lobbyCode)
+
+        lobbyReference
+            .child("roomChoices")
+            .child(playerId.value)
+            .setValue(roomName)
+    }
 }

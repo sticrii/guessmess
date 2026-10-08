@@ -10,9 +10,11 @@ import androidx.navigation.navArgument
 import com.studioname.safecracker.ui.DisplayNameScreen
 import com.studioname.safecracker.ui.LobbyScreen
 import com.studioname.safecracker.ui.MainMenuScreen
+import com.studioname.safecracker.ui.PickRoomScreen
 import com.studioname.safecracker.viewmodel.DisplayNameVM
 import com.studioname.safecracker.viewmodel.LobbyVM
 import com.studioname.safecracker.viewmodel.MainMenuVM
+import com.studioname.safecracker.viewmodel.PickRoomVM
 
 @Composable
 fun AppNavigation() {
@@ -58,7 +60,23 @@ fun AppNavigation() {
             route = "lobby/{lobbyCode}/pickRoom",
             arguments = listOf(navArgument("lobbyCode") { type = NavType.StringType })
         ) { backStackEntry ->
-            // TODO: build the composable and screen
+            val lobbyCode = backStackEntry.arguments?.getString("lobbyCode") ?: ""
+            val viewModel: PickRoomVM = hiltViewModel()
+
+            PickRoomScreen(
+                viewModel = viewModel,
+                navigateToRoom = { roomName -> navController.navigate("lobby/$lobbyCode/$roomName")}
+            )
+        }
+
+        composable(
+            route = "lobby/{lobbyCode}/{roomName}",
+            arguments = listOf(
+                navArgument("lobbyCode") { type = NavType.StringType },
+                navArgument("roomName") { type = NavType.StringType }
+            )
+        ) {
+            // TODO: room screen
         }
     }
 }

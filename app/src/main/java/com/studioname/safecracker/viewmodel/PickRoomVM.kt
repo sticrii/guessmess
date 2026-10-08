@@ -1,21 +1,88 @@
 package com.studioname.safecracker.viewmodel
 
+import androidx.compose.runtime.currentRecomposeScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.studioname.safecracker.model.Player
+import com.studioname.safecracker.model.PlayerId
+import com.studioname.safecracker.repository.Repository
+import com.studioname.safecracker.usecase.CountdownUC
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class PickRoomVM(
-
-) {
+@HiltViewModel
+class PickRoomVM @Inject constructor(
+    private val repository: Repository,
+    private val countdown: CountdownUC,
+    private val savedStateHandle: SavedStateHandle
+): ViewModel() {
+    val lobbyCode: String = checkNotNull(savedStateHandle["lobbyCode"])
     var players by mutableStateOf<List<Player>>(emptyList())
         private set
-    val initialTime = 15 // seconds
+
+    private var currentPlayerId: String? = null
+    val initialTime = 15 // seconds TODO: replace with the value you get from firebase phaseStartTime
 
     // MutableStateFlow - a thread-safe data holder and hot stream in Kotlin that stores a single,
     // current value and shares it with multiple observers
-    var timeRemaining = MutableStateFlow(initialTime)
+    private val _timeRemaining = MutableStateFlow(initialTime)
+    val timeRemaining: StateFlow<Int> = _timeRemaining.asStateFlow()
+
+    private val _playerRooms = MutableStateFlow<Map<String, String>>(emptyMap())
+    val playerRooms: StateFlow<Map<String, String>> = _playerRooms.asStateFlow()
+
+    var destinationRoom by mutableStateOf<String?>(null)
         private set
 
+    init {
+        // set current player
+        viewModelScope.launch {
+            currentPlayerId = repository.getCurrentPlayerId()
+        }
+
+        // update players
+        viewModelScope.launch {
+            repository.getLobbyPlayers(lobbyCode).collect { players = it }
+        }
+
+        // update the timer and check for time expiring
+        viewModelScope.launch {
+            countdown(initialTime = initialTime).collect { secondsLeft ->
+                _timeRemaining.value = secondsLeft
+
+                if (secondsLeft == 0) {
+                    onTimeExpire()
+                }
+            }
+        }
+
+        // update player room choices
+        viewModelScope.launch {
+            repository.getPlayerRooms(lobbyCode).collect { playerRooms ->
+                _playerRooms.value = playerRooms
+            }
+        }
+    }
+
+    fun onTimeExpire() {
+        try {
+            val playerRoom = playerRooms.value.get(currentPlayerId)
+
+            destinationRoom = playerRoom ?: "test"
+        } catch (e: Exception) {
+            println("[ERROR]: Player ID not found ${e.message}")
+        }
+    }
+
+    fun pickRoom(roomName: String) {
+        currentPlayerId?.let { repository.setPlayerRoom(lobbyCode, PlayerId(it), roomName) }
+    }
 }
