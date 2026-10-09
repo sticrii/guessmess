@@ -49,6 +49,7 @@ import androidx.compose.ui.res.painterResource
 import com.studioname.safecracker.R
 import com.studioname.safecracker.enums.StickerSize
 import com.studioname.safecracker.ui.components.PlayerSticker
+import com.studioname.safecracker.ui.components.SecondaryButton
 import com.studioname.safecracker.ui.components.StickerAndName
 import com.studioname.safecracker.ui.components.TitleText
 
@@ -135,33 +136,16 @@ fun LobbyScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp) // Gap between buttons
         ) {
-            Button(
+            SecondaryButton(
                 onClick = {
                     viewModel?.leaveLobby(
                         onSuccess = onLeave,
                         onError = { errorMessage = it }
                     ) ?: onLeave()
                 },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = ButtonColors.SECONDARY.value
-                ),
-                shape = RectangleShape,
-                elevation = ButtonDefaults.buttonElevation(
-                    defaultElevation = 8.dp,
-                    pressedElevation = 3.dp,
-                    disabledElevation = 0.dp
-                ),
-                modifier = Modifier.weight(0.40f) // 35% of the space
-            ) {
-                Text(
-                    text = "LEAVE",
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = TextSize.SUBTITLE.value,
-                    letterSpacing = 1.sp,
-                    modifier = Modifier.padding(vertical = 5.dp)
-                )
-            }
+                buttonText = "LEAVE",
+                modifier = Modifier.weight(0.40f)
+            )
 
             Button(
                 onClick = {

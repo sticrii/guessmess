@@ -1,5 +1,6 @@
 package com.studioname.safecracker.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -49,6 +50,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import com.studioname.safecracker.R
 import com.studioname.safecracker.ui.components.RoomNote
 import androidx.compose.ui.unit.IntSize
+import com.studioname.safecracker.ui.components.ConfirmationPrompt
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -98,8 +100,15 @@ private fun rememberNoteJitters(count: Int): List<NoteJitter> =
 fun PickRoomScreen(
     viewModel: PickRoomVM? = null,
     navigateToRoom: (String) -> Unit,
+    onLeave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var showPrompt by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = true) {
+        showPrompt = true
+    }
+
     val timeRemaining by (viewModel?.timeRemaining ?: MutableStateFlow(15)).collectAsStateWithLifecycle()
     var boardSize by remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current // for converting the px to dp
@@ -109,6 +118,19 @@ fun PickRoomScreen(
     // when destination room is set, we will call navigate to room
     LaunchedEffect(viewModel?.destinationRoom) {
         viewModel?.destinationRoom?.let { navigateToRoom(it) }
+    }
+
+    if (showPrompt) {
+        ConfirmationPrompt(
+            onConfirm = {
+                viewModel?.leaveLobby(
+                    onSuccess = onLeave,
+                    onError = {}
+                ) ?: onLeave()
+                showPrompt = false
+            },
+            onCancel = { showPrompt = false }
+        )
     }
 
     Column(
@@ -276,6 +298,9 @@ fun PickRoomScreen(
 @Composable
 fun PickRoomScreenPreview() {
     SafeCrackerTheme {
-        PickRoomScreen(navigateToRoom = {})
+        PickRoomScreen(
+            navigateToRoom = {},
+            onLeave = {}
+        )
     }
 }

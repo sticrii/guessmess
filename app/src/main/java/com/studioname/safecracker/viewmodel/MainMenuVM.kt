@@ -2,23 +2,19 @@ package com.studioname.safecracker.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.studioname.safecracker.repository.Repository
+import com.studioname.safecracker.repository.MainMenuRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MainMenuVM @Inject constructor(
-    private val repository: Repository
+    private val repository: MainMenuRepository
 ) : ViewModel() {
 
     init {
         viewModelScope.launch {
-            try {
-                repository.cleanupExpiredEmptyLobbies()
-            } catch (e: Exception) {
-                println("[ERROR]: Failed to clean expired lobbies: ${e.message}")
-            }
+            repository.cleanupExpiredEmptyLobbies()
         }
     }
 

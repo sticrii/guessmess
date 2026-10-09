@@ -39,18 +39,18 @@ fun DisplayNameScreen(
     navController: NavController? = null,
     viewModel: DisplayNameVM? = null
 ) {
-    var displayName by remember { mutableStateOf("") }
-
     val savedDisplayName = viewModel
         ?.savedDisplayName
         ?.collectAsState(initial = "")
         ?.value
         .orEmpty()
 
+    var displayName by remember(savedDisplayName) { mutableStateOf(savedDisplayName) }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier.fillMaxSize()
-                    .background(color = Color.DarkGray).padding(15.dp)
+            .background(color = Color.DarkGray).padding(15.dp)
     ) {
         GameTitle()
 
@@ -75,20 +75,14 @@ fun DisplayNameScreen(
                 ),
                 value = displayName,
                 onValueChange = { displayName = it },
-                placeholder = {
-                    if (savedDisplayName.isNotBlank()) {
-                        Text(savedDisplayName)
-                    }
-                }
             )
 
             ActionButton(
                 onClick = {
-                    val nameToConfirm = displayName.ifBlank { savedDisplayName }
-                    viewModel?.onNameConfirmed(nameToConfirm)
+                    viewModel?.onNameConfirmed(displayName)
 
                     navController?.navigate("main_menu") {
-                        popUpTo("display_name") { inclusive = true } // disables back button
+                        popUpTo("display_name") { inclusive = true }
                     }
                 },
                 buttonText = "LET'S GO",

@@ -7,17 +7,15 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.studioname.safecracker.model.Player
-import com.studioname.safecracker.model.PlayerId
-import com.studioname.safecracker.repository.Repository
+import com.studioname.safecracker.repository.LobbyRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlinx.coroutines.flow.collect
 
 @HiltViewModel
 class LobbyVM @Inject constructor(
-    private val repository: Repository,
-    private val savedStateHandle: SavedStateHandle  // for hilt, so we dont have to pass in code every time
+    private val repository: LobbyRepository,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     val lobbyCode: String = checkNotNull(savedStateHandle["lobbyCode"])
     var players by mutableStateOf<List<Player>>(emptyList())
@@ -61,7 +59,6 @@ class LobbyVM @Inject constructor(
 
     // save the current player
     val currentPlayer: Player?
-        // generate the getter function
         get() = players.find { it.id.value == currentPlayerId }
 
     fun leaveLobby(

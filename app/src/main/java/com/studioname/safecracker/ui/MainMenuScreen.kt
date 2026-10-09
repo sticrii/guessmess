@@ -57,7 +57,7 @@ fun MainMenuScreen(
                 )
             },
             buttonText = "START PARTY",
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().padding(20.dp)
         )
         if (message.isNotEmpty()) {
             Text(
@@ -111,7 +111,7 @@ fun MainMenuScreen(
                     )
                 },
                 buttonText = "JOIN PARTY",
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().padding(20.dp)
             )
         }
     }
