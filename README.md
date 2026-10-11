@@ -51,7 +51,7 @@ Korisnik klikne nešto
 ```
 rooms/
 └── [roomCode]/
-    ├── phase: "NIGHT" | "DAY" | "VOTING" | "ATTEMPT" | "ENDED"
+    ├── phase: "LOBBY" | "STARTED" | "PICK_ROOM | "PICK_HINT" | "DISCUSS" | "VOTE" | "ATTEMPT" | "ENDED"
     ├── round: 2
     ├── hostId: "uid_abc123"
     ├── players/
@@ -61,10 +61,12 @@ rooms/
     │       ├── isEliminated: false
     │       └── hints/
     │           └── [0..2] → { type: "RED"|"GREEN"|"YELLOW", content: "..." }
-    ├── gameRooms/
-    │   └── [roomId]/
+    ├── rooms/
+    │   └── [roomName]/
     │       └── hints/ → hintovi dostupni u toj sobi
-    ├── nightChoices/
+    |       └── playersIn/ → lista igraca trenutno u sobi
+    |       └── referenceImage: "R.drawable.room"
+    ├── roomChoices/
     │   └── [playerId]: "roomId"   ← skriveno do jutra
     ├── votes/
     │   └── [playerId]: "targetPlayerId" | ""
