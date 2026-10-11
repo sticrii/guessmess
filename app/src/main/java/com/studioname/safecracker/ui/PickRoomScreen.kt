@@ -20,9 +20,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -50,7 +52,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import com.studioname.safecracker.R
 import com.studioname.safecracker.ui.components.RoomNote
 import androidx.compose.ui.unit.IntSize
+import androidx.lifecycle.viewModelScope
+import com.studioname.safecracker.model.Room
 import com.studioname.safecracker.ui.components.ConfirmationPrompt
+import com.studioname.safecracker.ui.components.PlayerSticker
+import kotlinx.coroutines.launch
+import kotlin.collections.emptyList
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -104,6 +111,7 @@ fun PickRoomScreen(
     modifier: Modifier = Modifier,
 ) {
     var showPrompt by remember { mutableStateOf(false) }
+    val rooms = viewModel?.rooms
 
     BackHandler(enabled = true) {
         showPrompt = true
@@ -113,7 +121,7 @@ fun PickRoomScreen(
     var boardSize by remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current // for converting the px to dp
 
-    val numberOfRooms = 5 // TODO: implement this via parameter
+    val numberOfRooms = rooms?.size ?: 5
 
     // when destination room is set, we will call navigate to room
     LaunchedEffect(viewModel?.destinationRoom) {
@@ -176,8 +184,8 @@ fun PickRoomScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    viewModel.players.forEach { player ->
-                        StickerAndName(size = StickerSize.SMALL, displayName = player.displayName.value)
+                    viewModel.playersNotPicked.forEach { player ->
+                        PlayerSticker(size = StickerSize.SMALL)
                     }
                 }
             }
@@ -254,40 +262,44 @@ fun PickRoomScreen(
                 val maxOffsetX = ((cellWidth - noteSize) / 2f).coerceAtLeast(0.dp) * 0.6f
                 val maxOffsetY = ((cellHeight - noteSize) / 2f).coerceAtLeast(0.dp) * 0.6f
 
-                for (i in 0 until numberOfRooms) {
-                    val roomName = "test" // TODO: replace this with gathering actual room names
-                    val row = i / grid.cols
-                    val col = i % grid.cols
+                rooms?.let {
+                    for ((i, room) in rooms.withIndex()) {
+                        val row = i / grid.cols
+                        val col = i % grid.cols
 
-                    // used for centering if the row is not full
-                    val itemsInThisRow = if (row == grid.rows - 1) {
-                        numberOfRooms - grid.cols * (grid.rows - 1)
-                    } else {
-                        grid.cols
+                        // used for centering if the row is not full
+                        val itemsInThisRow = if (row == grid.rows - 1) {
+                            numberOfRooms - grid.cols * (grid.rows - 1)
+                        } else {
+                            grid.cols
+                        }
+                        val rowWidth = cellWidth * itemsInThisRow
+                        val rowStartX = boardPadding + (usableWidth - rowWidth) / 2f
+
+                        val cellX = rowStartX + cellWidth * col
+                        val cellY = topPadding + cellHeight * row
+
+                        val baseX = cellX + (cellWidth - noteSize) / 2f
+                        val baseY = cellY + (cellHeight - noteSize) / 2f
+
+                        val jitter = jitters[i]
+                        val finalX = baseX + maxOffsetX * jitter.offsetXFraction
+                        val finalY = baseY + maxOffsetY * jitter.offsetYFraction
+
+                        RoomNote(
+                            roomName = room.name,
+                            modifier = Modifier
+                                .offset(x = finalX, y = finalY)
+                                .size(noteSize)
+                                .rotate(jitter.rotationDegrees)
+                                .clickable {
+                                    viewModel.pickRoom(room)
+
+
+                                },
+                            referenceImage = R.drawable.room
+                        )
                     }
-                    val rowWidth = cellWidth * itemsInThisRow
-                    val rowStartX = boardPadding + (usableWidth - rowWidth) / 2f
-
-                    val cellX = rowStartX + cellWidth * col
-                    val cellY = topPadding + cellHeight * row
-
-                    val baseX = cellX + (cellWidth - noteSize) / 2f
-                    val baseY = cellY + (cellHeight - noteSize) / 2f
-
-                    val jitter = jitters[i]
-                    val finalX = baseX + maxOffsetX * jitter.offsetXFraction
-                    val finalY = baseY + maxOffsetY * jitter.offsetYFraction
-
-                    RoomNote(
-                        roomName = roomName,
-                        modifier = Modifier
-                            .offset(x = finalX, y = finalY)
-                            .size(noteSize)
-                            .rotate(jitter.rotationDegrees)
-                            .clickable {
-                                viewModel?.pickRoom(roomName)
-                            }
-                    )
                 }
             }
         }
@@ -300,7 +312,7 @@ fun PickRoomScreenPreview() {
     SafeCrackerTheme {
         PickRoomScreen(
             navigateToRoom = {},
-            onLeave = {}
+            onLeave = {},
         )
     }
 }

@@ -2,6 +2,7 @@ package com.studioname.safecracker.repository
 
 import com.google.firebase.database.ServerValue
 import com.studioname.safecracker.model.Player
+import com.studioname.safecracker.model.Room
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
@@ -22,8 +23,21 @@ class LobbyRepository @Inject constructor(
 
     suspend fun leaveLobby(lobbyCode: String, playerId: String) = mainRepository.leaveLobby(lobbyCode, playerId)
 
-    fun startGame(lobbyCode: String) {
+    fun startGame(lobbyCode: String, rooms: List<Room>) {
         val lobbyReference = mainRepository.getLobby(lobbyCode)
         lobbyReference.child("phase").setValue("PICK_ROOM")
+
+        val updates = hashMapOf<String, Any>()
+        for (room in rooms) {
+            val roomData = hashMapOf(
+                "hints" to room.hints,
+                "playersIn" to room.playersIn,
+                "referenceImage" to room.referenceImage,
+            )
+
+            updates["rooms/${room.name}"] = roomData
+        }
+
+        lobbyReference.updateChildren(updates)
     }
 }

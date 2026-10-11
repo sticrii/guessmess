@@ -1,13 +1,16 @@
 package com.studioname.safecracker.viewmodel
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.studioname.safecracker.model.Player
 import com.studioname.safecracker.model.PlayerId
+import com.studioname.safecracker.model.Room
 import com.studioname.safecracker.repository.PickRoomRepository
 import com.studioname.safecracker.usecase.CountdownUC
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,6 +30,12 @@ class PickRoomVM @Inject constructor(
     var players by mutableStateOf<List<Player>>(emptyList())
         private set
 
+    var playersNotPicked by mutableStateOf<List<Player>>(emptyList())
+        private set
+
+    var rooms by mutableStateOf<List<Room>>(emptyList())
+        private set
+
     private var currentPlayerId: String? = null
     val initialTime = 15 // seconds TODO: replace with the value you get from firebase phaseStartTime
 
@@ -39,7 +48,16 @@ class PickRoomVM @Inject constructor(
     var destinationRoom by mutableStateOf<String?>(null)
         private set
 
+    var initialCopyPlayers by mutableStateOf(false)
+
     init {
+        viewModelScope.launch {
+            repository.getRoomsData(lobbyCode).collect {
+                rooms = it
+                println("[ROOMS]: $rooms")
+            }
+        }
+
         // set current player
         viewModelScope.launch {
             currentPlayerId = repository.getCurrentPlayerId()
@@ -47,7 +65,14 @@ class PickRoomVM @Inject constructor(
 
         // update players
         viewModelScope.launch {
-            repository.getLobbyPlayers(lobbyCode).collect { players = it }
+            repository.getLobbyPlayers(lobbyCode).collect {
+                players = it
+
+                if (!initialCopyPlayers) {
+                    playersNotPicked = players
+                    initialCopyPlayers = true // mark as copied so we dont copy every frame
+                }
+            }
         }
 
         // update the timer and check for time expiring
@@ -80,8 +105,21 @@ class PickRoomVM @Inject constructor(
         }
     }
 
-    fun pickRoom(roomName: String) {
-        currentPlayerId?.let { repository.setPlayerRoom(lobbyCode, PlayerId(it), roomName) }
+    fun markAsPicked(targetPlayer: Player) {
+        playersNotPicked = playersNotPicked.filterNot { it.id == targetPlayer.id }
+    }
+
+    fun pickRoom(room: Room) {
+        viewModelScope.launch {
+            currentPlayerId?.let {
+                repository.setPlayerRoom(lobbyCode, PlayerId(it), room.name)
+                val currentPlayer = repository.getPlayer(it)
+
+                currentPlayer?.let {
+                    markAsPicked(it)
+                }
+            }
+        }
     }
 
     fun leaveLobby(

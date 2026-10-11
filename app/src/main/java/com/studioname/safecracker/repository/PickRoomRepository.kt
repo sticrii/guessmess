@@ -1,15 +1,22 @@
 package com.studioname.safecracker.repository
 
+import android.R
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.GenericTypeIndicator
 import com.google.firebase.database.ValueEventListener
 import com.studioname.safecracker.model.Hint
 import com.studioname.safecracker.model.Player
 import com.studioname.safecracker.model.PlayerId
+import com.studioname.safecracker.model.Room
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,9 +26,46 @@ class PickRoomRepository @Inject constructor(
 ) {
     suspend fun getCurrentPlayerId(): String = mainRepository.getCurrentPlayerId()
 
+    suspend fun getPlayer(playerId: String): Player? = mainRepository.getPlayer(PlayerId(playerId))
+
     fun getLobbyPlayers(lobbyCode: String): Flow<List<Player>> = mainRepository.getLobbyPlayers(lobbyCode)
 
     suspend fun leaveLobby(lobbyCode: String, playerId: String) = mainRepository.leaveLobby(lobbyCode, playerId)
+
+    fun getRoomsData(lobbyCode: String): Flow<List<Room>> = callbackFlow {
+        val lobbyReference = mainRepository.getLobby(lobbyCode)
+        val ref = lobbyReference.child("rooms")
+
+        val listener = ref.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val rooms = mutableListOf<Room>()
+                for (child in snapshot.children) {
+                    val roomName = child.key ?: continue
+
+                    // used only because of .getValue() function, it cant take in <List<Player>> directly
+                    val playersInType = object : GenericTypeIndicator<List<Player>>() {}
+                    val playersIn = child.child("playersIn").getValue(playersInType) ?: emptyList()
+
+                    val referenceImage = child.child("referenceImage").getValue(Int::class.java) ?: continue
+
+                    val hintsType = object : GenericTypeIndicator<List<Hint>>() {}
+                    val hints = child.child("hints").getValue(hintsType) ?: emptyList()
+
+                    val room = Room(
+                        name = roomName,
+                        playersIn = playersIn,
+                        referenceImage = referenceImage,
+                        hints = hints
+                    )
+                    rooms.add(room)
+                }
+                trySend(rooms)
+            }
+
+            override fun onCancelled(error: DatabaseError) {}
+        })
+        awaitClose { ref.removeEventListener(listener) }
+    }
 
     fun getPlayerRooms(lobbyCode: String): Flow<Map<String, String>> = callbackFlow {
         val lobbyReference = mainRepository.getLobby(lobbyCode)
@@ -32,8 +76,8 @@ class PickRoomRepository @Inject constructor(
                 val roomChoices = mutableMapOf<String, String>()
                 for (child in snapshot.children) {
                     val playerId = child.key ?: continue
-                    val roomId = child.getValue(String::class.java) ?: continue
-                    roomChoices[playerId] = roomId
+                    val roomName = child.getValue(String::class.java) ?: continue
+                    roomChoices[playerId] = roomName
                 }
                 trySend(roomChoices)
             }

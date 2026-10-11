@@ -7,6 +7,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.studioname.safecracker.model.Player
+import com.studioname.safecracker.model.Room
 import com.studioname.safecracker.repository.LobbyRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -52,7 +53,7 @@ class LobbyVM @Inject constructor(
         // listen for game start
         viewModelScope.launch {
             repository.getLobbyPhase(lobbyCode).collect { phase ->
-                if (phase == "GAME_STARTED") gameStarted = true
+                if (phase == "STARTED") gameStarted = true
             }
         }
     }
@@ -78,7 +79,13 @@ class LobbyVM @Inject constructor(
 
     fun startGame() {
         viewModelScope.launch {
-            repository.startGame(lobbyCode)
+            repository.startGame(lobbyCode, listOf(
+                Room(name = "Kitchen"),
+                Room(name = "Storage"),
+                Room(name = "Living Room"),
+                Room(name = "Art Room"),
+                Room(name = "Bathroom")
+            )) // TODO: send list of rooms dynamically from the settings
         }
     }
 }
