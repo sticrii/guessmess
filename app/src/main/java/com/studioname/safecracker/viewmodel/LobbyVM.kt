@@ -53,7 +53,7 @@ class LobbyVM @Inject constructor(
         // listen for game start
         viewModelScope.launch {
             repository.getLobbyPhase(lobbyCode).collect { phase ->
-                if (phase == "STARTED") gameStarted = true
+                if (phase == "PICK_ROOM") gameStarted = true
             }
         }
     }
