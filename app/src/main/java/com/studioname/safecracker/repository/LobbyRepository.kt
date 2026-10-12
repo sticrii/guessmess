@@ -30,8 +30,20 @@ class LobbyRepository @Inject constructor(
             "phase" to "PICK_ROOM"
         )
         for (room in rooms) {
-            updates["rooms/${room.name}"] = mapOf(
-                "hints" to room.hints,
+            val roomKey = room.name
+                .trim()
+                .lowercase()
+                .replace(" ", "_")
+
+            val hintData = room.hints.associate { hint ->
+                hint.id to mapOf(
+                    "type" to hint.type,
+                    "content" to hint.content
+                )
+            }
+
+            updates["rooms/$roomKey"] = mapOf(
+                "hints" to hintData,
                 "playersIn" to room.playersIn,
                 "referenceImage" to room.referenceImage
             )
