@@ -23,21 +23,31 @@ class LobbyRepository @Inject constructor(
 
     suspend fun leaveLobby(lobbyCode: String, playerId: String) = mainRepository.leaveLobby(lobbyCode, playerId)
 
-    fun startGame(lobbyCode: String, rooms: List<Room>) {
+    suspend fun startGame(lobbyCode: String, rooms: List<Room>) {
         val lobbyReference = mainRepository.getLobby(lobbyCode)
-        lobbyReference.child("phase").setValue("PICK_ROOM")
 
-        val updates = hashMapOf<String, Any>()
+        val updates = mutableMapOf<String, Any>(
+            "phase" to "PICK_ROOM"
+        )
         for (room in rooms) {
-            val roomData = hashMapOf(
-                "hints" to room.hints,
+            val roomKey = room.name
+                .trim()
+                .lowercase()
+                .replace(" ", "_")
+
+            val hintData = room.hints.associate { hint ->
+                hint.id to mapOf(
+                    "type" to hint.type,
+                    "content" to hint.content
+                )
+            }
+
+            updates["rooms/$roomKey"] = mapOf(
+                "hints" to hintData,
                 "playersIn" to room.playersIn,
-                "referenceImage" to room.referenceImage,
+                "referenceImage" to room.referenceImage
             )
-
-            updates["rooms/${room.name}"] = roomData
         }
-
-        lobbyReference.updateChildren(updates)
+        lobbyReference.updateChildren(updates).await()
     }
 }
