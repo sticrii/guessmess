@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.constraintlayout.helper.widget.Flow
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -30,6 +31,16 @@ class PickRoomVM @Inject constructor(
     var players by mutableStateOf<List<Player>>(emptyList())
         private set
 
+    private fun getPlayerById(id: PlayerId): Player? {
+        for (player in players) {
+            if (player.id.value == id.value) {
+                return player
+            }
+        }
+
+        return null
+    }
+
     var playersNotPicked by mutableStateOf<List<Player>>(emptyList())
         private set
 
@@ -37,7 +48,7 @@ class PickRoomVM @Inject constructor(
         private set
 
     private var currentPlayerId: String? = null
-    val initialTime = 15 // seconds TODO: replace with the value you get from firebase phaseStartTime
+    val initialTime = 60 // seconds TODO: replace with the value you get from firebase phaseStartTime
 
     private val _timeRemaining = MutableStateFlow(initialTime)
     val timeRemaining: StateFlow<Int> = _timeRemaining.asStateFlow()
@@ -109,10 +120,10 @@ class PickRoomVM @Inject constructor(
         playersNotPicked = playersNotPicked.filterNot { it.id == targetPlayer.id }
     }
 
-    fun pickRoom(room: Room) {
+    fun pickRoom(roomName: String) {
         viewModelScope.launch {
             currentPlayerId?.let {
-                repository.setPlayerRoom(lobbyCode, PlayerId(it), room.name)
+                repository.setPlayerRoom(lobbyCode, PlayerId(it), roomName)
                 val currentPlayer = repository.getPlayer(it)
 
                 currentPlayer?.let {
@@ -135,5 +146,20 @@ class PickRoomVM @Inject constructor(
                 onError(e.message ?: "Couldn't leave lobby.")
             }
         }
+    }
+
+    fun getRoomPlayers(roomName: String): List<Player> {
+        val players: MutableList<Player> = mutableListOf()
+        for (room in rooms) {
+            if (room.name == roomName) {
+                for (playerId in room.playersIn) {
+                    val player = getPlayerById(PlayerId(playerId))
+
+                    player?.let { players.add(player) }
+                }
+            }
+        }
+
+        return players
     }
 }

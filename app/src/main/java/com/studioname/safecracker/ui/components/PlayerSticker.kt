@@ -13,10 +13,13 @@ import com.studioname.safecracker.R
 import com.studioname.safecracker.enums.StickerSize
 
 @Composable
-fun PlayerSticker(size: StickerSize, referenceImage: Int = R.drawable.player_sticker) {
+fun PlayerSticker(
+    size: StickerSize,
+    referenceImage: Int = R.drawable.player_sticker,
+    modifier: Modifier = Modifier
+) {
     AsyncImage(
-
-        modifier = Modifier.size(size.value).clip(CircleShape),
+        modifier = modifier.size(size.value).clip(CircleShape),
         model = referenceImage, // TODO: replace default with automatic sticker creation
         contentDescription = "Player sticker",
         contentScale = ContentScale.Fit,

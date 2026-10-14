@@ -61,6 +61,7 @@ import kotlin.collections.emptyList
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 import kotlin.random.Random
+import androidx.compose.ui.geometry.Offset
 
 
 // number of rows and columns in the grid
@@ -89,6 +90,27 @@ private data class NoteJitter(
     val offsetYFraction: Float,
     val rotationDegrees: Float,
 )
+
+/**
+ * Maps t in [0, 1) to a fractional (x, y) position on the perimeter of the
+ * unit square, starting at the bottom-left corner (t = 0) and going
+ * bottom-left -> bottom-right -> top-right -> top-left -> back to start.
+ */
+private fun perimeterFraction(t: Float): Offset {
+    val tt = t - kotlin.math.floor(t) // wrap into [0, 1)
+    return when {
+        tt < 0.25f -> Offset(tt / 0.25f, 1f)                     // bottom edge, L -> R
+        tt < 0.5f  -> Offset(1f, 1f - (tt - 0.25f) / 0.25f)       // right edge, bottom -> top
+        tt < 0.75f -> Offset(1f - (tt - 0.5f) / 0.25f, 0f)        // top edge, R -> L
+        else       -> Offset(0f, (tt - 0.75f) / 0.25f)            // left edge, top -> bottom
+    }
+}
+
+/** Fractional positions (relative to the note's bounds) for n players. */
+private fun computePlayerStickerPositions(playerCount: Int): List<Offset> {
+    if (playerCount <= 0) return emptyList()
+    return List(playerCount) { i -> perimeterFraction(i.toFloat() / playerCount) }
+}
 
 // remember the jitters so it doesnt change upon change of screen
 @Composable
@@ -286,19 +308,38 @@ fun PickRoomScreen(
                         val finalX = baseX + maxOffsetX * jitter.offsetXFraction
                         val finalY = baseY + maxOffsetY * jitter.offsetYFraction
 
-                        RoomNote(
-                            roomName = room.name,
+                        val playersInRoom = viewModel.getRoomPlayers(room.name)
+                        println("[ROOM]: Players in ${room.name}: $playersInRoom")
+                        val stickerFractions = remember(playersInRoom.size) {
+                            computePlayerStickerPositions(playersInRoom.size)
+                        }
+
+                        Box(
                             modifier = Modifier
                                 .offset(x = finalX, y = finalY)
                                 .size(noteSize)
                                 .rotate(jitter.rotationDegrees)
-                                .clickable {
-                                    viewModel.pickRoom(room)
+                        ) {
+                            RoomNote(
+                                roomName = room.name,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clickable { viewModel.pickRoom(room.name) },
+                                referenceImage = R.drawable.room
+                            )
 
-
-                                },
-                            referenceImage = R.drawable.room
-                        )
+                            playersInRoom.forEachIndexed { index, player ->
+                                val frac = stickerFractions[index]
+                                println("[SUCCESS]: Added ${player.displayName} to the room")
+                                PlayerSticker(
+                                    size = StickerSize.SMALL,
+                                    modifier = Modifier.offset(
+                                        x = noteSize * frac.x - StickerSize.SMALL.value / 2,
+                                        y = noteSize * frac.y - StickerSize.SMALL.value / 2
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
             }
