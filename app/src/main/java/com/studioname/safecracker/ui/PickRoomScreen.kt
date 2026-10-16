@@ -62,6 +62,7 @@ import kotlin.math.ceil
 import kotlin.math.roundToInt
 import kotlin.random.Random
 import androidx.compose.ui.geometry.Offset
+import com.studioname.safecracker.ui.components.TimerText
 
 
 // number of rows and columns in the grid
@@ -174,12 +175,7 @@ fun PickRoomScreen(
     ) {
         TitleText(text = "PICK A ROOM")
 
-        Text(
-            text = "$timeRemaining seconds remaining",
-            color = Color.White,
-            fontSize = TextSize.SUBTITLE.value,
-            fontWeight = FontWeight.Medium
-        )
+        TimerText(timeRemaining = timeRemaining)
 
         // displays all players in a container
         Column(

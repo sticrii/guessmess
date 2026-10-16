@@ -42,7 +42,7 @@ fun ActionButton(onClick: () -> Unit, buttonText: String, modifier: Modifier = M
             fontSize = TextSize.ACTION.value,
             modifier = Modifier.padding(10.dp),
             fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp,
+            letterSpacing = 1.5.sp,
             color = Color.White
         )
     }
