@@ -15,6 +15,8 @@ import com.studioname.safecracker.viewmodel.DisplayNameVM
 import com.studioname.safecracker.viewmodel.LobbyVM
 import com.studioname.safecracker.viewmodel.MainMenuVM
 import com.studioname.safecracker.viewmodel.PickRoomVM
+import com.studioname.safecracker.ui.RoomHintsScreen
+import com.studioname.safecracker.viewmodel.RoomHintsVM
 
 @Composable
 fun AppNavigation() {
@@ -65,7 +67,7 @@ fun AppNavigation() {
 
             PickRoomScreen(
                 viewModel = viewModel,
-                navigateToRoom = { roomName -> navController.navigate("lobby/$lobbyCode/$roomName")},
+                navigateToRoom = { roomName -> navController.navigate("lobby/$lobbyCode/room/$roomName")},
                 onLeave = {
                     navController.navigate("main_menu") {
                         popUpTo("main_menu") { inclusive = true}
@@ -75,13 +77,14 @@ fun AppNavigation() {
         }
 
         composable(
-            route = "lobby/{lobbyCode}/{roomName}",
+            route = "lobby/{lobbyCode}/room/{roomName}",
             arguments = listOf(
                 navArgument("lobbyCode") { type = NavType.StringType },
                 navArgument("roomName") { type = NavType.StringType }
             )
         ) {
-            // TODO: room screen
+            val viewModel: RoomHintsVM = hiltViewModel()
+            RoomHintsScreen(viewModel = viewModel)
         }
     }
 }

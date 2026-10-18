@@ -182,4 +182,10 @@ class MainRepository @Inject constructor(
             lobbyReference.child("hostId").setValue(nextHostId).await()
         }
     }
+
+    suspend fun getRoomHintIds(roomKey: String): List<String> {
+        val snapshot = db.child("hints").child(roomKey).get().await()
+        return snapshot.children.mapNotNull { it.key }
+    }
+
 }

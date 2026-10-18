@@ -35,19 +35,15 @@ class LobbyRepository @Inject constructor(
                 .lowercase()
                 .replace(" ", "_")
 
-            val hintData = room.hints.associate { hint ->
-                hint.id to mapOf(
-                    "type" to hint.type,
-                    "content" to hint.content
-                )
-            }
+            val hintIds = mainRepository.getRoomHintIds(roomKey)
 
             updates["rooms/$roomKey"] = mapOf(
-                "hints" to hintData,
+                "hintIds" to hintIds.associateWith { true },
                 "playersIn" to room.playersIn,
                 "referenceImage" to room.referenceImage
             )
         }
+
         lobbyReference.updateChildren(updates).await()
     }
 }
