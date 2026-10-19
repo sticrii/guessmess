@@ -1,4 +1,4 @@
-# SafeCracker
+    # SafeCracker
 
 Party igra za grupu prijatelja - igrači otkrivaju šifru sefa pomoću hint kartica, trejdovanja informacija i socijalne dedukcije.
 
