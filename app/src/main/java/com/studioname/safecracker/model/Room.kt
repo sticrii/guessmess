@@ -6,5 +6,5 @@ data class Room(
     val name: String,
     val playersIn: List<String> = emptyList(),
     val referenceImage: Int = R.drawable.room,
-    val hints: List<String> = emptyList()
+    val hintIds: List<String> = emptyList()
 )
