@@ -54,4 +54,23 @@ class RoomHintsVM @Inject constructor(
             }
         }
     }
+
+    fun takeHint(hintId: String) {
+        viewModelScope.launch {
+            try {
+                val playerId = PlayerId(repository.getCurrentPlayerId())
+                val roomKey = roomName.trim().lowercase().replace(" ", "_")
+
+                repository.addHintToPlayer(
+                    lobbyCode = lobbyCode,
+                    playerId = playerId,
+                    roomKey = roomKey,
+                    hintId = hintId
+                )
+            } catch (exception: Exception) {
+                errorMessage = exception.message ?: "Could not take hint."
+            }
+        }
+    }
+
 }

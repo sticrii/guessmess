@@ -1,13 +1,12 @@
 package com.studioname.safecracker.repository
 
-import android.R
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.GenericTypeIndicator
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.getValue
 import com.studioname.safecracker.model.Hint
 import com.studioname.safecracker.model.Player
 import com.studioname.safecracker.model.PlayerId
@@ -19,11 +18,18 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.reflect.KClass
+import com.google.firebase.Firebase
+import com.google.firebase.database.database
+import kotlinx.coroutines.launch
 
 @Singleton
 class PickRoomRepository @Inject constructor(
     private val mainRepository: MainRepository
 ) {
+    // used only because of .getValue() function, it cant take in <List<Player>> directly
+    private val playersInType = object : GenericTypeIndicator<Map<String, Boolean>>() {}
+    private val hintsType = object : GenericTypeIndicator<Map<String, Boolean>>() {}
     suspend fun getCurrentPlayerId(): String = mainRepository.getCurrentPlayerId()
 
     suspend fun getPlayer(playerId: String): Player? = mainRepository.getPlayer(PlayerId(playerId))
@@ -41,21 +47,17 @@ class PickRoomRepository @Inject constructor(
                 val rooms = mutableListOf<Room>()
                 for (child in snapshot.children) {
                     val roomName = child.key ?: continue
-
-                    // used only because of .getValue() function, it cant take in <List<Player>> directly
-                    val playersInType = object : GenericTypeIndicator<List<Player>>() {}
-                    val playersIn = child.child("playersIn").getValue(playersInType) ?: emptyList()
-
+                    val playersInMap = child.child("playersIn").getValue(playersInType) ?: emptyMap()
+                    val playersIn = playersInMap.keys.toList()
                     val referenceImage = child.child("referenceImage").getValue(Int::class.java) ?: continue
-
-                    val hintsType = object : GenericTypeIndicator<List<Hint>>() {}
-                    val hints = child.child("hints").getValue(hintsType) ?: emptyList()
+                    val hintIdsMap = child.child("hintIds").getValue(hintsType) ?: emptyMap()
+                    val hintIds = hintIdsMap.keys.toList()
 
                     val room = Room(
                         name = roomName,
                         playersIn = playersIn,
                         referenceImage = referenceImage,
-                        hints = hints
+                        hintIds = hintIds
                     )
                     rooms.add(room)
                 }
@@ -86,9 +88,19 @@ class PickRoomRepository @Inject constructor(
         awaitClose { ref.removeEventListener(listener) }
     }
 
-    fun setPlayerRoom(lobbyCode: String, playerId: PlayerId, roomName: String) {
+    suspend fun setPlayerRoom(lobbyCode: String, playerId: PlayerId, roomName: String) {
         val lobbyReference = mainRepository.getLobby(lobbyCode)
+        val roomRef = lobbyReference.child("roomChoices").child(playerId.value)
+        val currentRoom = roomRef.get().await().getValue(String::class.java) ?: ""
+
+        if (currentRoom.isNotEmpty()) {
+            lobbyReference.child("rooms").child(currentRoom).child("playersIn").child(playerId.value).removeValue()
+            roomRef.removeValue()
+        }
+
         lobbyReference.child("roomChoices").child(playerId.value).setValue(roomName)
+        lobbyReference.child("/rooms/$roomName/playersIn").child(playerId.value).setValue(true)
+        println("[ROOM]: $playerId picked $roomName")
     }
 
     fun changePhase(lobbyCode: String, newPhase: String = "PICK_HINT") {
@@ -101,32 +113,146 @@ class PickRoomRepository @Inject constructor(
         require(roomKey.matches(Regex("^[a-z0-9_]+$"))) {
             "Room name can only contain lowercase letters, numbers, and underscores."
         }
-        val hintsReference = mainRepository.getLobby(lobbyCode).child("rooms").child(roomKey).child("hints")
-        return observeHints(hintsReference)
-    }
 
-    fun getPlayerHints(lobbyCode: String, playerId: PlayerId): Flow<List<Hint>> {
-        val hintsReference = mainRepository.getLobby(lobbyCode).child("players").child(playerId.value).child("hints")
-        return observeHints(hintsReference)
-    }
+        return callbackFlow {
+            val assignedIdsReference = mainRepository
+                .getLobby(lobbyCode)
+                .child("rooms")
+                .child(roomKey)
+                .child("hintIds")
 
-    private fun observeHints(hintsReference: DatabaseReference): Flow<List<Hint>> = callbackFlow {
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val hints = snapshot.children.mapNotNull { hintSnapshot ->
-                    val hintId = hintSnapshot.key ?: return@mapNotNull null
-                    val type = hintSnapshot.child("type").getValue(String::class.java) ?: return@mapNotNull null
-                    val content = hintSnapshot.child("content").getValue(String::class.java) ?: return@mapNotNull null
-                    Hint(id = hintId, type = type, content = content)
-                }
-                trySend(hints)
+            val sourceHintsReference = Firebase.database.reference
+                .child("hints")
+                .child(roomKey)
+
+            var assignedIds: Set<String> = emptySet()
+            var sourceHints: Map<String, Hint> = emptyMap()
+
+            fun publishHints() {
+                trySend(assignedIds.mapNotNull { id -> sourceHints[id] })
             }
 
-            override fun onCancelled(error: DatabaseError) {
-                close(error.toException())
+            val idsListener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    assignedIds = snapshot.children.mapNotNull { it.key }.toSet()
+                    publishHints()
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    close(error.toException())
+                }
+            }
+
+            val hintsListener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    sourceHints = snapshot.children.mapNotNull { hintSnapshot ->
+                        val id = hintSnapshot.key ?: return@mapNotNull null
+                        val type = hintSnapshot.child("type")
+                            .getValue(String::class.java) ?: return@mapNotNull null
+                        val content = hintSnapshot.child("content")
+                            .getValue(String::class.java) ?: return@mapNotNull null
+
+                        try {
+                            id to Hint(id = id, roomKey = roomKey, type = type, content = content)
+                        } catch (exception: IllegalArgumentException) {
+                            null
+                        }
+                    }.toMap()
+
+                    publishHints()
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    close(error.toException())
+                }
+            }
+
+            assignedIdsReference.addValueEventListener(idsListener)
+            sourceHintsReference.addValueEventListener(hintsListener)
+
+            awaitClose {
+                assignedIdsReference.removeEventListener(idsListener)
+                sourceHintsReference.removeEventListener(hintsListener)
             }
         }
-        hintsReference.addValueEventListener(listener)
-        awaitClose { hintsReference.removeEventListener(listener) }
     }
+
+    fun getPlayerHints(lobbyCode: String, playerId: PlayerId): Flow<List<Hint>> =
+        callbackFlow {
+            val hintIdsReference = mainRepository
+                .getLobby(lobbyCode)
+                .child("players")
+                .child(playerId.value)
+                .child("hintIds")
+
+            val listener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    launch {
+                        try {
+                            val playerHints = mutableListOf<Hint>()
+
+                            for (roomSnapshot in snapshot.children) {
+                                val roomKey = roomSnapshot.key ?: continue
+                                val hintIds = roomSnapshot.children.mapNotNull { it.key }.toSet()
+
+                                val sourceSnapshot = Firebase.database.reference
+                                    .child("hints")
+                                    .child(roomKey)
+                                    .get()
+                                    .await()
+
+                                for (hintSnapshot in sourceSnapshot.children) {
+                                    val hintId = hintSnapshot.key ?: continue
+                                    if (hintId !in hintIds) continue
+
+                                    val type = hintSnapshot.child("type")
+                                        .getValue(String::class.java) ?: continue
+                                    val content = hintSnapshot.child("content")
+                                        .getValue(String::class.java) ?: continue
+
+                                    try {
+                                        playerHints.add(
+                                            Hint(id = hintId, roomKey = roomKey, type = type, content = content)
+                                        )
+                                    } catch (exception: IllegalArgumentException) {
+                                        // Preskoči neispravan hint.
+                                    }
+                                }
+                            }
+
+                            trySend(playerHints)
+                        } catch (exception: Exception) {
+                            close(exception)
+                        }
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    close(error.toException())
+                }
+            }
+
+            hintIdsReference.addValueEventListener(listener)
+            awaitClose {
+                hintIdsReference.removeEventListener(listener)
+            }
+        }
+
+    suspend fun addHintToPlayer(
+        lobbyCode: String,
+        playerId: PlayerId,
+        roomKey: String,
+        hintId: String
+    ) {
+        mainRepository
+            .getLobby(lobbyCode)
+            .child("players")
+            .child(playerId.value)
+            .child("hintIds")
+            .child(roomKey)
+            .child(hintId)
+            .setValue(true)
+            .await()
+    }
+
 }

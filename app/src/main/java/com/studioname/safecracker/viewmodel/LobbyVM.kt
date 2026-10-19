@@ -79,13 +79,16 @@ class LobbyVM @Inject constructor(
 
     fun startGame() {
         viewModelScope.launch {
-            repository.startGame(lobbyCode, listOf(
-                Room(name = "Kitchen"),
-                Room(name = "Storage"),
-                Room(name = "Living Room"),
-                Room(name = "Art Room"),
-                Room(name = "Bathroom")
-            )) // TODO: send list of rooms dynamically from the settings
+            repository.startGame(
+                lobbyCode = lobbyCode,
+                rooms = listOf( // TODO: send list of rooms dynamically from the settings
+                    Room(name = "Kitchen"),
+                    Room(name = "Storage"),
+                    Room(name = "Living Room"),
+                    Room(name = "Art Room"),
+                    Room(name = "Bathroom")
+                )
+            )
         }
     }
 }
