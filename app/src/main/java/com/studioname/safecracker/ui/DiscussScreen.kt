@@ -41,7 +41,7 @@ import com.studioname.safecracker.ui.components.ActionButton
 import com.studioname.safecracker.ui.components.TimerText
 import kotlinx.coroutines.flow.MutableStateFlow
 
-private val fakePlayers = List(12) { index ->
+private val fakePlayers = List(5) { index ->
     Player(
         id = PlayerId("fake_player_$index"),
         displayName = DisplayName("Player${index + 1}")
@@ -54,7 +54,7 @@ fun DiscussScreen(
     viewModel: DiscussVM? = null
 ) {
     val players = viewModel?.players ?: fakePlayers
-    val stickerSize = StickerSize.REGULAR.value
+    val stickerSize = if (players.size >= 9) StickerSize.REGULAR else if (players.size >= 6) StickerSize.LARGE else StickerSize.SHOWCASE
 
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current
@@ -82,18 +82,18 @@ fun DiscussScreen(
             val boxHeight = with(density) { boxSize.height.toDp() }
 
             if (boxWidth > 0.dp && boxHeight > 0.dp) {
-                val radiusX = (boxWidth - stickerSize) / 2
-                val radiusY = (boxHeight - stickerSize) / 2
+                val radiusX = (boxWidth - stickerSize.value) / 2
+                val radiusY = (boxHeight - stickerSize.value) / 2
                 val centerX = boxWidth / 2
                 val centerY = boxHeight / 2
 
                 players.forEachIndexed { index, player ->
                     val angleRad = Math.toRadians(-90.0 + index * (360.0 / players.size))
-                    val x = centerX + radiusX * cos(angleRad).toFloat() - stickerSize / 2
-                    val y = centerY + radiusY * sin(angleRad).toFloat() - stickerSize / 2
+                    val x = centerX + radiusX * cos(angleRad).toFloat() - stickerSize.value / 2
+                    val y = centerY + radiusY * sin(angleRad).toFloat() - stickerSize.value / 2
 
                     PlayerSticker(
-                        size = StickerSize.REGULAR,
+                        size = stickerSize,
                         modifier = Modifier
                             .offset(x = x, y = y)
                             .clickable {
