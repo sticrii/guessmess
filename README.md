@@ -49,9 +49,15 @@ Korisnik klikne nešto
 ### Firebase struktura
 
 ```
-rooms/
-└── [roomCode]/
-    ├── phase: "LOBBY" | "STARTED" | "PICK_ROOM | "PICK_HINT" | "DISCUSS" | "VOTE" | "ATTEMPT" | "ENDED"
+hints/
+└── [roomKey]/
+    └── [hintId]/
+        ├── type: "RED"|"GREEN"|"YELLOW"
+        └── content: "Tekst hinta"
+
+lobbies/
+└── [lobbyCode]/
+    ├── phase: "LOBBY"|"STARTED"|"PICK_ROOM"|"PICK_HINT"|"DISCUSS"|"VOTE"|"ATTEMPT"|"ENDED"
     ├── round: 2
     ├── hostId: "uid_abc123"
     ├── players/
@@ -59,18 +65,23 @@ rooms/
     │       ├── name: "Igor"
     │       ├── failedAttempts: 1
     │       ├── isEliminated: false
-    │       └── hints/
-    │           └── [0..2] → { type: "RED"|"GREEN"|"YELLOW", content: "..." }
+    │       └── hintIds/
+    │           └── [roomKey]/
+    │               └── [hintId]: true
     ├── rooms/
-    │   └── [roomName]/
-    │       └── hints/ → hintovi dostupni u toj sobi
-    |       └── playersIn/ → lista igraca trenutno u sobi
-    |       └── referenceImage: "R.drawable.room"
+    │   └── [roomKey]/
+    │       ├── hintIds/
+    │       │   └── [hintId]: true
+    │       ├── playersIn/
+    │       │   └── [playerId]: true
+    │       └── referenceImage: [drawable resource id]
     ├── roomChoices/
-    │   └── [playerId]: "roomId"   ← skriveno do jutra
-    ├── votes/
-    │   └── [playerId]: "targetPlayerId" | ""
-    └── codeAttempts/
+    │   └── [playerId]: "[roomKey]"        ← skriveno do jutra
+    ├── nightChoices/                      ← planirano
+    │   └── [playerId]: "[choice]"
+    ├── votes/                             ← planirano
+    │   └── [playerId]: "targetPlayerId"|""
+    └── codeAttempts/                      ← planirano
         └── [0..n]/
             ├── playerId: "uid_abc123"
             ├── attempted: "4829"
