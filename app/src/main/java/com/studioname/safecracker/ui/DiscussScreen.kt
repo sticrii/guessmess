@@ -59,7 +59,7 @@ fun DiscussScreen(
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current
 
-    val timeRemaining by (viewModel?.timeRemaining ?: MutableStateFlow(15)).collectAsStateWithLifecycle()
+    val timeRemaining by (viewModel?.timeRemaining ?: MutableStateFlow(60)).collectAsStateWithLifecycle()
 
     Column(
         modifier = modifier.fillMaxSize().background(color = Color.DarkGray).padding(top = 25.dp),
@@ -101,7 +101,7 @@ fun DiscussScreen(
                                 // TODO: from which we will be picking players, and to whom
                                 // TODO: the shake animation will apply
 
-                                viewModel?.toggleSelectPlayer(player.id)
+                                viewModel?.toggleSelectPlayer(player.id.value)
                             }
                     )
                 }
@@ -113,7 +113,11 @@ fun DiscussScreen(
             verticalArrangement = Arrangement.Center
         ) {
             ActionButton(
-                onClick = { /* TODO: implement */ },
+                onClick = {
+                    viewModel?.selectedPlayerId?.let {
+                        viewModel.sendTradeRequest()
+                    }
+                },
                 buttonText = "TRADE",
                 modifier = Modifier.width(200.dp)
             )

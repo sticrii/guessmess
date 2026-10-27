@@ -28,7 +28,9 @@ class DiscussVM @Inject constructor(
     var players by mutableStateOf<List<Player>>(emptyList())
         private set
 
-    var selectedPlayerId by mutableStateOf<PlayerId?>(null)
+    private var currentPlayerId: String? = null
+
+    var selectedPlayerId by mutableStateOf<String?>(null)
         private set
 
     val initialTime = 60 // seconds TODO: replace with the value you get from firebase phaseStartTime
@@ -37,6 +39,11 @@ class DiscussVM @Inject constructor(
     val timeRemaining: StateFlow<Int> = _timeRemaining.asStateFlow()
 
     init {
+        // we call this at the start to get the current player id
+        viewModelScope.launch {
+            currentPlayerId = repository.getCurrentPlayerId()
+        }
+
         // update all players
         viewModelScope.launch {
             repository.getLobbyPlayers(lobbyCode).collect { updatedPlayers ->
@@ -65,14 +72,24 @@ class DiscussVM @Inject constructor(
      * a trade is supposed to occur with, automatically deselects currently selected player if exists
      * @playerId ID of the target player
      */
-    fun toggleSelectPlayer(playerId: PlayerId) {
+    fun toggleSelectPlayer(playerId: String) {
         selectedPlayerId?.let {
-            if (it.value == playerId.value) {
+            if (it == playerId) {
                 selectedPlayerId = null
                 return
             }
         }
 
         selectedPlayerId = playerId
+    }
+
+    fun sendTradeRequest() {
+        if (selectedPlayerId != null && currentPlayerId != null) {
+            repository.createRequest(
+                lobbyCode = lobbyCode,
+                receiverId = selectedPlayerId!!,
+                senderId = currentPlayerId!!
+            )
+        }
     }
 }
