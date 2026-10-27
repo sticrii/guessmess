@@ -20,7 +20,7 @@ class DiscussRepository @Inject constructor(
     suspend fun getCurrentPlayerId(): String = mainRepository.getCurrentPlayerId()
     fun getLobbyPlayers(lobbyCode: String): Flow<List<Player>> = mainRepository.getLobbyPlayers(lobbyCode)
 
-    private fun generateTradeId(lobbyCode: String, senderId: String, receiverId: String): String {
+    private fun generateTradeId(senderId: String, receiverId: String): String {
         val charPool = ('A'..'Z') + ('0'..'9')
         val randomChars = (1..3).map { charPool.random() }.joinToString("")
 
@@ -35,7 +35,7 @@ class DiscussRepository @Inject constructor(
         val lobbyReference = mainRepository.getLobby(lobbyCode)
         val tradesReference = lobbyReference.child("trades")
 
-        val tradeId = generateTradeId(lobbyCode, senderId, receiverId)
+        val tradeId = generateTradeId(senderId, receiverId)
 
         val tradeData = mapOf(
             "senderId" to senderId,
