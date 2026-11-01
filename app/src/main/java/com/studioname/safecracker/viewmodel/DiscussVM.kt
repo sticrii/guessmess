@@ -141,8 +141,7 @@ class DiscussVM @Inject constructor(
                 if (repository.getTradeBetween(
                         lobbyCode = lobbyCode,
                         id1 = selectedPlayerId!!,
-                        id2 = currentPlayerId!!
-                ) != null) {
+                        id2 = currentPlayerId!!) != null) {
                     println("[TRADES]: A pending trade between $selectedPlayerId and $currentPlayerId already exists!")
                     return@launch
                 }

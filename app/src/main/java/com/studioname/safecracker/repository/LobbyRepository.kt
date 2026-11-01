@@ -29,6 +29,7 @@ class LobbyRepository @Inject constructor(
         val updates = mutableMapOf<String, Any>(
             "phase" to "PICK_ROOM"
         )
+
         for (room in rooms) {
             val roomKey = room.name
                 .trim()

@@ -150,7 +150,6 @@ fun LobbyScreen(
             Button(
                 onClick = {
                     viewModel?.startGame()
-                    onStart()
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = ButtonColors.ACTION.value
