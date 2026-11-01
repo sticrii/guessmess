@@ -1,8 +1,11 @@
 package com.studioname.safecracker.repository
 
+import coil3.memory.MemoryCache
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ServerValue
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.getValue
 import com.studioname.safecracker.enums.TradeState
 import com.studioname.safecracker.model.Player
 import com.studioname.safecracker.model.PlayerId
@@ -12,6 +15,7 @@ import javax.inject.Singleton
 import com.studioname.safecracker.model.Trade
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
 
 @Singleton
 class DiscussRepository @Inject constructor(
@@ -19,6 +23,8 @@ class DiscussRepository @Inject constructor(
 ) {
     suspend fun getCurrentPlayerId(): String = mainRepository.getCurrentPlayerId()
     fun getLobbyPlayers(lobbyCode: String): Flow<List<Player>> = mainRepository.getLobbyPlayers(lobbyCode)
+
+    fun getLobbyHost(lobbyCode: String): Flow<Player> = mainRepository.getLobbyHost(lobbyCode)
 
     private fun generateTradeId(senderId: String, receiverId: String): String {
         val charPool = ('A'..'Z') + ('0'..'9')
@@ -40,14 +46,55 @@ class DiscussRepository @Inject constructor(
         val tradeData = mapOf(
             "senderId" to senderId,
             "receiverId" to receiverId,
-            "status" to TradeState.PENDING
+            "status" to TradeState.PENDING,
+            "sentAt" to ServerValue.TIMESTAMP
         )
 
         tradesReference.child(tradeId).setValue(tradeData)
         println("[TRADES]: Trade request created with ID $tradeId.")
     }
 
-    fun getTradeRequests(lobbyCode: String): Flow<List<Trade>> = callbackFlow {
+    fun deleteRequest(lobbyCode: String, tradeId: String) {
+        val lobbyReference = mainRepository.getLobby(lobbyCode)
+        lobbyReference.child("trades")
+            .child(tradeId)
+            .removeValue()
+            .addOnSuccessListener { println("[TRADES]: Trade request with ID $tradeId successfully deleted.") }
+            .addOnFailureListener { error -> println("[TRADES]: Couldn't delete trade request with ID $tradeId\n${error.message}") }
+    }
+
+    fun deleteAllRequests(lobbyCode: String) {
+        val lobbyReference = mainRepository.getLobby(lobbyCode)
+        lobbyReference.child("tradeRequests").removeValue()
+            .addOnSuccessListener { println("[TRADES]: Deleted all trades in lobby '$lobbyCode'")}
+            .addOnFailureListener { error -> println("[TRADES]: Couldn't delete all trades in lobby '$lobbyCode'\n${error.message}") }
+    }
+
+    suspend fun getTradeBetween(lobbyCode: String, id1: String, id2: String): Trade? {
+        val lobbyReference = mainRepository.getLobby(lobbyCode)
+        val tradesReference = lobbyReference.child("trades")
+
+        try {
+            val snapshot = tradesReference.get().await()
+
+            for (tradeSnapshot in snapshot.children) {
+                val senderId = tradeSnapshot.child("senderId").getValue(String::class.java) ?: continue
+                val receiverId = tradeSnapshot.child("receiverId").getValue(String::class.java) ?: continue
+                val state = tradeSnapshot.child("state").getValue(TradeState::class.java) ?: continue
+
+                if ((id1 == senderId || id1 == receiverId) &&
+                    (id2== senderId || id2 == receiverId) &&
+                    state == TradeState.PENDING
+                    ) {
+                    return tradeSnapshot.getValue(Trade::class.java)
+                }
+            }
+        } catch (e: Exception) { e.printStackTrace() }
+
+        return null
+    }
+
+    fun getMyTradeRequests(lobbyCode: String, playerId: String): Flow<List<Trade>> = callbackFlow {
         val lobbyReference = mainRepository.getLobby(lobbyCode)
         val tradesReference = lobbyReference.child("trades")
 
@@ -63,6 +110,9 @@ class DiscussRepository @Inject constructor(
                     val receiverIdStr = trade.child("receiverId").getValue(String::class.java) ?: continue
                     val receiverId = PlayerId(receiverIdStr)
 
+                    // skip trades which we are not meant for us
+                    if (receiverIdStr != playerId) { continue }
+
                     val senderOffer = mutableListOf<String>()
                     for (hintSnapshot in trade.child("senderOffer").children) {
                         val hintId = hintSnapshot.key ?: continue
@@ -75,10 +125,12 @@ class DiscussRepository @Inject constructor(
                         receiverOffer.add(hintId)
                     }
 
-                    val stateStr = trade.child("state").getValue(String::class.java) ?: continue
-                    val state = stateStr.let {
-                        runCatching { TradeState.valueOf(it.uppercase()) }.getOrNull()
-                    } ?: TradeState.PENDING
+                    val state = trade.child("state").getValue(TradeState::class.java) ?: TradeState.PENDING
+
+                    // skip trades that are not in a pending state
+                    if (state != TradeState.PENDING) { continue }
+
+                    val sentAt = trade.child("sentAt").getValue(Long::class.java) ?: 0L
 
                     val thisTrade = Trade(
                         id = tradeId,
@@ -87,6 +139,7 @@ class DiscussRepository @Inject constructor(
                         receiverId = receiverId,
                         receiverOffer = receiverOffer,
                         state = state,
+                        sentAt = sentAt
                     )
 
                     trades.add(thisTrade)
@@ -99,5 +152,23 @@ class DiscussRepository @Inject constructor(
         })
 
         awaitClose { tradesReference.removeEventListener(listener) }
+    }
+
+    suspend fun expireOldTrades(lobbyCode: String, expirySeconds: Long = 15) {
+        val ref = mainRepository.getLobby(lobbyCode).child("trades")
+        val snapshot = ref.get().await()
+
+        val now = System.currentTimeMillis()
+
+        for (tradeSnapshot in snapshot.children) {
+            val trade = tradeSnapshot.getValue(Trade::class.java) ?: continue
+
+            if (trade.state == TradeState.PENDING) {
+                val elapsed = (now - trade.sentAt) / 1000
+                if (elapsed >= expirySeconds) {
+                    tradeSnapshot.ref.child("state").setValue(TradeState.DECLINED)
+                }
+            }
+        }
     }
 }

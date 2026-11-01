@@ -8,5 +8,6 @@ data class Trade(
     val senderOffer: MutableList<String>? = null,
     val receiverId: PlayerId,
     val receiverOffer: MutableList<String>? = null,
-    val state: TradeState
+    val state: TradeState,
+    val sentAt: Long = 0L,
 )

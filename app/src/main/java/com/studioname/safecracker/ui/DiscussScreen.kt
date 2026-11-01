@@ -16,7 +16,6 @@ import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -36,9 +35,11 @@ import kotlin.math.cos
 import kotlin.math.sin
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.studioname.safecracker.ui.components.ActionButton
 import com.studioname.safecracker.ui.components.TimerText
+import com.studioname.safecracker.ui.components.TradeNotif
 import kotlinx.coroutines.flow.MutableStateFlow
 
 private val fakePlayers = List(5) { index ->
@@ -58,6 +59,27 @@ fun DiscussScreen(
 
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current
+
+    val pendingTrades by (viewModel?.pendingTrades ?: MutableStateFlow(emptyList()))
+        .collectAsStateWithLifecycle()
+
+    Column (
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        pendingTrades.forEach { trade ->
+            val senderName = viewModel?.getPlayerName(trade.senderId) ?: "UnknownPlayer"
+            val timeRemainingSecs = viewModel?.getTradeRemainingSecs(trade) ?: 5L
+            val timeRemainingPercent = (timeRemainingSecs.toFloat() / 15f) * 100f
+
+            if (timeRemainingPercent > 0.01) {
+                TradeNotif(
+                    senderName = senderName,
+                    timeRemaining = timeRemainingPercent
+                )
+            }
+        }
+    }
 
     val timeRemaining by (viewModel?.timeRemaining ?: MutableStateFlow(60)).collectAsStateWithLifecycle()
 
