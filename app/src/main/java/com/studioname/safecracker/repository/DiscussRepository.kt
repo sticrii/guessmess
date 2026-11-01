@@ -46,7 +46,7 @@ class DiscussRepository @Inject constructor(
         val tradeData = mapOf(
             "senderId" to senderId,
             "receiverId" to receiverId,
-            "status" to TradeState.PENDING,
+            "state" to TradeState.PENDING,
             "sentAt" to ServerValue.TIMESTAMP
         )
 
@@ -70,26 +70,39 @@ class DiscussRepository @Inject constructor(
             .addOnFailureListener { error -> println("[TRADES]: Couldn't delete all trades in lobby '$lobbyCode'\n${error.message}") }
     }
 
-    suspend fun getTradeBetween(lobbyCode: String, id1: String, id2: String): Trade? {
+    /**
+     * Returns the ID of the trade between 2 players in the same lobby if one exists. Else, returns null
+     * @param lobbyCode The code of the lobby we are looking in
+     * @param id1 String form ID of the 1st player (doesn't matter if its sender or receiver)
+     * @param id2 String form ID of the 2nd player (doesn't matter if its sender or receiver)
+     */
+    suspend fun getTradeBetween(lobbyCode: String, id1: String, id2: String): String? {
         val lobbyReference = mainRepository.getLobby(lobbyCode)
         val tradesReference = lobbyReference.child("trades")
 
         try {
             val snapshot = tradesReference.get().await()
 
+            println("[TRADES_DEBUG] Got snapshot. It's children: ${snapshot.childrenCount}")
+
             for (tradeSnapshot in snapshot.children) {
+                println("[TRADES_DEBUG] Trade node key: ${tradeSnapshot.key}, value: ${tradeSnapshot.value}")
                 val senderId = tradeSnapshot.child("senderId").getValue(String::class.java) ?: continue
                 val receiverId = tradeSnapshot.child("receiverId").getValue(String::class.java) ?: continue
-                val state = tradeSnapshot.child("state").getValue(TradeState::class.java) ?: continue
+                val stateString = tradeSnapshot.child("state").getValue(String::class.java)
+
+                val state = TradeState.fromString(stateString)
+
+                println("[TRADES_DEBUG]: SID - $senderId, RID - $receiverId, STATE - $state")
 
                 if ((id1 == senderId || id1 == receiverId) &&
-                    (id2== senderId || id2 == receiverId) &&
+                    (id2 == senderId || id2 == receiverId) &&
                     state == TradeState.PENDING
-                    ) {
-                    return tradeSnapshot.getValue(Trade::class.java)
+                ) {
+                    return tradeSnapshot.key // return the tradeId
                 }
             }
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) { println("[TRADES]: Something went wrong... ${e.message}") }
 
         return null
     }

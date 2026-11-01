@@ -41,14 +41,11 @@ class PickRoomVM @Inject constructor(
         return null
     }
 
-    val playersNotPicked: List<Player>
-        get() = players.filter { player -> !playerRooms.value.containsKey(player.id.value) }
-
     var rooms by mutableStateOf<List<Room>>(emptyList())
         private set
 
     private var currentPlayerId: String? = null
-    val initialTime = 60 // seconds TODO: replace with the value you get from firebase phaseStartTime
+    val initialTime = 10 // seconds TODO: replace with the value you get from firebase phaseStartTime
 
     private val _timeRemaining = MutableStateFlow(initialTime)
     val timeRemaining: StateFlow<Int> = _timeRemaining.asStateFlow()
@@ -102,8 +99,8 @@ class PickRoomVM @Inject constructor(
         try {
             val playerRoom = playerRooms.value.get(currentPlayerId)
 
-            repository.changePhase(lobbyCode)
-            destinationRoom = playerRoom ?: "test"
+            repository.changePhase(lobbyCode, "DISCUSS")
+            destinationRoom = playerRoom ?: "test" // TODO: instead of "test" send a randomly chosen room
         } catch (e: Exception) {
             println("[ERROR]: Player ID not found ${e.message}")
         }

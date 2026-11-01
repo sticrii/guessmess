@@ -136,20 +136,30 @@ class DiscussVM @Inject constructor(
     }
 
     fun sendTradeRequest() {
-        if (selectedPlayerId != null && currentPlayerId != null) {
+        val targetId = selectedPlayerId
+        val senderId = currentPlayerId
+
+        if (targetId != null && senderId != null && targetId != senderId) {
             viewModelScope.launch {
-                if (repository.getTradeBetween(
-                        lobbyCode = lobbyCode,
-                        id1 = selectedPlayerId!!,
-                        id2 = currentPlayerId!!) != null) {
-                    println("[TRADES]: A pending trade between $selectedPlayerId and $currentPlayerId already exists!")
+                println("[TRADES_DEBUG] About to call getTradeBetween for id1=$targetId, id2=$senderId")
+
+                val existingTrade = repository.getTradeBetween(
+                    lobbyCode = lobbyCode,
+                    id1 = targetId,
+                    id2 = senderId
+                )
+
+                if (existingTrade != null) {
+                    println("[TRADES]: A pending trade between $targetId and $senderId already exists!")
                     return@launch
                 }
 
+                println("[TRADES_DEBUG] No existing trade found. Calling createRequest...")
+
                 repository.createRequest(
                     lobbyCode = lobbyCode,
-                    receiverId = selectedPlayerId!!,
-                    senderId = currentPlayerId!!
+                    receiverId = targetId,
+                    senderId = senderId
                 )
             }
 

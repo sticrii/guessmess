@@ -137,6 +137,7 @@ fun DiscussScreen(
             ActionButton(
                 onClick = {
                     viewModel?.selectedPlayerId?.let {
+                        println("[TRADES]: Trade button pressed")
                         viewModel.sendTradeRequest()
                     }
                 },

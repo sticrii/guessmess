@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.studioname.safecracker.ui.DiscussScreen
 import com.studioname.safecracker.ui.DisplayNameScreen
 import com.studioname.safecracker.ui.LobbyScreen
 import com.studioname.safecracker.ui.MainMenuScreen
@@ -16,6 +17,7 @@ import com.studioname.safecracker.viewmodel.LobbyVM
 import com.studioname.safecracker.viewmodel.MainMenuVM
 import com.studioname.safecracker.viewmodel.PickRoomVM
 import com.studioname.safecracker.ui.RoomHintsScreen
+import com.studioname.safecracker.viewmodel.DiscussVM
 import com.studioname.safecracker.viewmodel.RoomHintsVM
 
 @Composable
@@ -67,7 +69,10 @@ fun AppNavigation() {
 
             PickRoomScreen(
                 viewModel = viewModel,
-                navigateToRoom = { roomName -> navController.navigate("lobby/$lobbyCode/room/$roomName")},
+                navigateToRoom = { roomName ->
+                    //navController.navigate("lobby/$lobbyCode/room/$roomName")
+                    navController.navigate("lobby/$lobbyCode/discuss")
+                },
                 onLeave = {
                     navController.navigate("main_menu") {
                         popUpTo("main_menu") { inclusive = true}
@@ -85,6 +90,16 @@ fun AppNavigation() {
         ) {
             val viewModel: RoomHintsVM = hiltViewModel()
             RoomHintsScreen(viewModel = viewModel)
+        }
+
+        composable(
+            route = "lobby/{lobbyCode}/discuss",
+            arguments = listOf(
+                navArgument("lobbyCode") { type = NavType.StringType }
+            )
+        ) {
+            val viewModel: DiscussVM = hiltViewModel()
+            DiscussScreen(viewModel = viewModel)
         }
     }
 }
