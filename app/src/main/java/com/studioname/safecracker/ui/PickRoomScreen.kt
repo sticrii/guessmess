@@ -151,6 +151,11 @@ fun PickRoomScreen(
         viewModel?.destinationRoom?.let { navigateToRoom(it) }
     }
 
+    val playerRoomsMap by (viewModel?.playerRooms ?: MutableStateFlow(emptyMap())).collectAsStateWithLifecycle()
+    val playersNotPicked = viewModel?.players?.filter {
+        !playerRoomsMap.containsKey(it.id.value)
+    } ?: emptyList()
+
     if (showPrompt) {
         ConfirmationPrompt(
             onConfirm = {
@@ -202,7 +207,7 @@ fun PickRoomScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    viewModel.playersNotPicked.forEach { player ->
+                    playersNotPicked.forEach { player ->
                         PlayerSticker(size = StickerSize.SMALL)
                     }
                 }

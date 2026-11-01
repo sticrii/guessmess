@@ -41,8 +41,8 @@ class PickRoomVM @Inject constructor(
         return null
     }
 
-    var playersNotPicked by mutableStateOf<List<Player>>(emptyList())
-        private set
+    val playersNotPicked: List<Player>
+        get() = players.filter { player -> !playerRooms.value.containsKey(player.id.value) }
 
     var rooms by mutableStateOf<List<Room>>(emptyList())
         private set
@@ -58,8 +58,6 @@ class PickRoomVM @Inject constructor(
 
     var destinationRoom by mutableStateOf<String?>(null)
         private set
-
-    var initialCopyPlayers by mutableStateOf(false)
 
     init {
         viewModelScope.launch {
@@ -78,11 +76,6 @@ class PickRoomVM @Inject constructor(
         viewModelScope.launch {
             repository.getLobbyPlayers(lobbyCode).collect {
                 players = it
-
-                if (!initialCopyPlayers) {
-                    playersNotPicked = players
-                    initialCopyPlayers = true // mark as copied so we dont copy every frame
-                }
             }
         }
 
@@ -116,19 +109,10 @@ class PickRoomVM @Inject constructor(
         }
     }
 
-    fun markAsPicked(targetPlayer: Player) {
-        playersNotPicked = playersNotPicked.filterNot { it.id == targetPlayer.id }
-    }
-
     fun pickRoom(roomName: String) {
         viewModelScope.launch {
             currentPlayerId?.let {
                 repository.setPlayerRoom(lobbyCode, PlayerId(it), roomName)
-                val currentPlayer = repository.getPlayer(it)
-
-                currentPlayer?.let {
-                    markAsPicked(it)
-                }
             }
         }
     }
