@@ -149,8 +149,10 @@ fun LobbyScreen(
 
             Button(
                 onClick = {
-                    viewModel?.startGame()
-                    onStart()
+                    viewModel?.startGame(
+                        onSuccess = onStart,
+                        onError = { errorMessage = it }
+                    )
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = ButtonColors.ACTION.value
