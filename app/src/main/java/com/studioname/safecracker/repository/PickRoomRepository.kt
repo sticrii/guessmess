@@ -103,9 +103,15 @@ class PickRoomRepository @Inject constructor(
         println("[ROOM]: $playerId picked $roomName")
     }
 
-    fun changePhase(lobbyCode: String, newPhase: String = "PICK_HINT") {
-        val lobbyReference = mainRepository.getLobby(lobbyCode)
-        lobbyReference.child("phase").setValue(newPhase)
+    suspend fun changePhase(
+        lobbyCode: String,
+        newPhase: String = "PICK_HINT"
+    ) {
+        mainRepository
+            .getLobby(lobbyCode)
+            .child("phase")
+            .setValue(newPhase)
+            .await()
     }
 
     fun getRoomHints(lobbyCode: String, roomName: String): Flow<List<Hint>> {

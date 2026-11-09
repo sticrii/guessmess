@@ -106,13 +106,14 @@ class PickRoomVM @Inject constructor(
     }
 
     fun onTimeExpire() {
-        try {
-            val playerRoom = playerRooms.value.get(currentPlayerId)
-
-            repository.changePhase(lobbyCode)
-            destinationRoom = playerRoom ?: "test"
-        } catch (e: Exception) {
-            println("[ERROR]: Player ID not found ${e.message}")
+        viewModelScope.launch {
+            try {
+                val playerRoom = playerRooms.value[currentPlayerId]
+                repository.changePhase(lobbyCode)
+                destinationRoom = playerRoom ?: "test"
+            } catch (e: Exception) {
+                println("[ERROR]: Could not change phase: ${e.message}")
+            }
         }
     }
 
