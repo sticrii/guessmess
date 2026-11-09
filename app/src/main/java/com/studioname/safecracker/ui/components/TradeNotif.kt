@@ -37,7 +37,7 @@ import com.studioname.safecracker.enums.ButtonColors
 fun TradeNotif(
     modifier: Modifier = Modifier,
     senderName: String,
-    timeRemaining: Float = 0.9f,
+    timeRemaining: Float = 0.5f,
 ) {
     Column(
         modifier = modifier

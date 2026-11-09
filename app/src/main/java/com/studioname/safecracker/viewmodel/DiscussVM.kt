@@ -90,6 +90,7 @@ class DiscussVM @Inject constructor(
             currentPlayerId?.let {
                 repository.getMyTradeRequests(lobbyCode, it).collect { trades ->
                     _myTrades.value = trades
+                    println("[TRADES]: My trades - ${_myTrades.value}")
                 }
             }
         }
@@ -177,7 +178,7 @@ class DiscussVM @Inject constructor(
         return "UnknownPlayer"
     }
 
-    fun getTradeRemainingSecs(trade: Trade): Long {
+    fun getTradeSinceMillisecs(trade: Trade): Long {
         return System.currentTimeMillis() - trade.sentAt // TODO: move to more precise time management
     }
 }

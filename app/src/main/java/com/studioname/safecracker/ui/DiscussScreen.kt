@@ -36,6 +36,7 @@ import kotlin.math.sin
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.studioname.safecracker.ui.components.ActionButton
 import com.studioname.safecracker.ui.components.TimerText
@@ -63,14 +64,17 @@ fun DiscussScreen(
     val pendingTrades by (viewModel?.pendingTrades ?: MutableStateFlow(emptyList()))
         .collectAsStateWithLifecycle()
 
+    println("[UI-CHECK]: Trenutni pendingTrades na ekranu su: $pendingTrades")
+
     Column (
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().zIndex(2f),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         pendingTrades.forEach { trade ->
             val senderName = viewModel?.getPlayerName(trade.senderId) ?: "UnknownPlayer"
-            val timeRemainingSecs = viewModel?.getTradeRemainingSecs(trade) ?: 5L
-            val timeRemainingPercent = (timeRemainingSecs.toFloat() / 15f) * 100f
+            val timeSinceSecs = (viewModel?.getTradeSinceMillisecs(trade)?.div(1000)) ?: 5L
+            val timeRemainingPercent = ((15f - timeSinceSecs.toFloat()) / 15f)
+            println("[UI-CHECK]: timeRemainingPercent - $timeRemainingPercent")
 
             if (timeRemainingPercent > 0.01) {
                 TradeNotif(
@@ -84,7 +88,7 @@ fun DiscussScreen(
     val timeRemaining by (viewModel?.timeRemaining ?: MutableStateFlow(60)).collectAsStateWithLifecycle()
 
     Column(
-        modifier = modifier.fillMaxSize().background(color = Color.DarkGray).padding(top = 25.dp),
+        modifier = modifier.fillMaxSize().background(color = Color.DarkGray).padding(top = 25.dp).zIndex(1f),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         TitleText(text = "DISCUSS!")
