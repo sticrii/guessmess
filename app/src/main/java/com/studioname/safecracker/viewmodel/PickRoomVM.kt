@@ -107,13 +107,19 @@ class PickRoomVM @Inject constructor(
 
     fun onTimeExpire() {
         viewModelScope.launch {
+            val playerId = repository.getCurrentPlayerId()
+            val playerRoom = playerRooms.value[playerId]
+
             try {
-                val playerRoom = playerRooms.value[currentPlayerId]
-                repository.changePhase(lobbyCode)
-                destinationRoom = playerRoom ?: "test"
+                if (repository.isHost(lobbyCode, playerId)) {
+                    repository.changePhase(lobbyCode)
+                }
             } catch (e: Exception) {
                 println("[ERROR]: Could not change phase: ${e.message}")
             }
+
+            // Svaki uređaj prelazi lokalno na izabranu sobu.
+            destinationRoom = playerRoom ?: "test"
         }
     }
 

@@ -104,6 +104,18 @@ class PickRoomRepository @Inject constructor(
         println("[ROOM]: $playerId picked $roomName")
     }
 
+
+    suspend fun isHost(lobbyCode: String, playerId: String): Boolean {
+        val hostId = mainRepository
+            .getLobby(lobbyCode)
+            .child("hostId")
+            .get()
+            .await()
+            .getValue(String::class.java)
+
+        return hostId == playerId
+    }
+
     suspend fun changePhase(
         lobbyCode: String,
         newPhase: String = "PICK_HINT"
