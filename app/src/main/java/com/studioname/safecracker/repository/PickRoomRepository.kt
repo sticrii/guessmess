@@ -1,5 +1,6 @@
 package com.studioname.safecracker.repository
 
+import com.studioname.safecracker.R
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.google.firebase.database.DataSnapshot
@@ -49,7 +50,7 @@ class PickRoomRepository @Inject constructor(
                     val roomName = child.key ?: continue
                     val playersInMap = child.child("playersIn").getValue(playersInType) ?: emptyMap()
                     val playersIn = playersInMap.keys.toList()
-                    val referenceImage = child.child("referenceImage").getValue(Int::class.java) ?: continue
+                    val referenceImage = child.child("referenceImage").getValue(Int::class.java) ?: R.drawable.room
                     val hintIdsMap = child.child("hintIds").getValue(hintsType) ?: emptyMap()
                     val hintIds = hintIdsMap.keys.toList()
 

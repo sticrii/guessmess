@@ -163,29 +163,36 @@ class MainRepository @Inject constructor(
     }
 
     suspend fun leaveLobby(lobbyCode: String, playerId: String) {
-        val lobbyReference = this@MainRepository.getLobby(lobbyCode)
-        val playersReference = lobbyReference.child("players")
+        val lobbyReference = getLobby(lobbyCode)
+        val lobbySnapshot = lobbyReference.get().await()
 
-        val currentHost = this@MainRepository.getLobbyHost(lobbyCode).first()
+        if (!lobbySnapshot.exists()) return
 
-        playersReference.child(playerId).removeValue().await()
+        val currentHostId = lobbySnapshot
+            .child("hostId")
+            .getValue(String::class.java)
 
-        val playersSnapshot = playersReference.get().await()
-        val nextHostId = playersSnapshot.children.firstOrNull()?.key
+        val remainingPlayerIds = lobbySnapshot
+            .child("players")
+            .children
+            .mapNotNull { it.key }
+            .filterNot { it == playerId }
 
-        if (nextHostId == null) {
-            lobbyReference.child("emptySince").setValue(ServerValue.TIMESTAMP).await()
-            return
+        val updates = mutableMapOf<String, Any?>(
+            "players/$playerId" to null
+        )
+
+        if (remainingPlayerIds.isEmpty()) {
+            updates["emptySince"] = ServerValue.TIMESTAMP
+        } else if (currentHostId == playerId || currentHostId !in remainingPlayerIds) {
+            updates["hostId"] = remainingPlayerIds.first()
         }
 
-        if (currentHost.id.value == playerId) {
-            lobbyReference.child("hostId").setValue(nextHostId).await()
-        }
+        lobbyReference.updateChildren(updates).await()
     }
 
     suspend fun getRoomHintIds(roomKey: String): List<String> {
         val snapshot = db.child("hints").child(roomKey).get().await()
         return snapshot.children.mapNotNull { it.key }
     }
-
 }
