@@ -88,11 +88,18 @@ class PickRoomVM @Inject constructor(
 
         // update the timer and check for time expiring
         viewModelScope.launch {
-            countdown(initialTime = initialTime).collect { secondsLeft ->
-                _timeRemaining.value = secondsLeft
+            repository.getPhaseStartTime(lobbyCode).collect { startTime ->
+                if (startTime == null) return@collect
 
-                if (secondsLeft == 0) {
-                    onTimeExpire()
+                countdown(
+                    phaseStartTimeMillis = startTime,
+                    durationSeconds = initialTime
+                ).collect { secondsLeft ->
+                    _timeRemaining.value = secondsLeft
+
+                    if (secondsLeft == 0) {
+                        onTimeExpire()
+                    }
                 }
             }
         }
@@ -118,7 +125,7 @@ class PickRoomVM @Inject constructor(
                 println("[ERROR]: Could not change phase: ${e.message}")
             }
 
-            // Svaki uređaj prelazi lokalno na izabranu sobu.
+            // Every device changes room locally
             destinationRoom = playerRoom ?: "test"
         }
     }

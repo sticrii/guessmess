@@ -127,6 +127,27 @@ class PickRoomRepository @Inject constructor(
             .await()
     }
 
+
+    fun getPhaseStartTime(lobbyCode: String): Flow<Long?> = callbackFlow {
+        val ref = mainRepository
+            .getLobby(lobbyCode)
+            .child("phaseStartTime")
+
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                trySend(snapshot.getValue(Long::class.java))
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
+
+        ref.addValueEventListener(listener)
+        awaitClose { ref.removeEventListener(listener) }
+    }
+
+
     fun getRoomHints(lobbyCode: String, roomName: String): Flow<List<Hint>> {
         val roomKey = roomName.trim().lowercase().replace(" ", "_")
         require(roomKey.matches(Regex("^[a-z0-9_]+$"))) {

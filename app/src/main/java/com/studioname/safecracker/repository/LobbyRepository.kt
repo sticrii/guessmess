@@ -27,7 +27,8 @@ class LobbyRepository @Inject constructor(
         val lobbyReference = mainRepository.getLobby(lobbyCode)
 
         val updates = mutableMapOf<String, Any>(
-            "phase" to "PICK_ROOM"
+            "phase" to "PICK_ROOM",
+            "phaseStartTime" to ServerValue.TIMESTAMP
         )
         for (room in rooms) {
             val roomKey = room.name
