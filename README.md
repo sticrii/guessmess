@@ -57,17 +57,20 @@ hints/
 
 lobbies/
 └── [lobbyCode]/
-    ├── phase: "LOBBY"|"STARTED"|"PICK_ROOM"|"PICK_HINT"|"DISCUSS"|"VOTE"|"ATTEMPT"|"ENDED"
+    ├── phase: "LOBBY"|"PICK_ROOM"|"PICK_HINT"|"DISCUSS"|"VOTE"|"ATTEMPT"|"ENDED"
     ├── round: 2
     ├── hostId: "uid_abc123"
     ├── players/
     │   └── [playerId]/
-    │       ├── name: "Igor"
+    │       ├── displayName: "Igor"
     │       ├── failedAttempts: 1
     │       ├── isEliminated: false
     │       └── hintIds/
-    │           └── [roomKey]/
-    │               └── [hintId]: true
+    │           └── [hintId]: true
+    ├── hints/
+    │   └── [hintId]/
+    │       ├── type: "RED"|"BLACK"|"BLUE"
+    │       └── content: "Tekst hinta"
     ├── rooms/
     │   └── [roomKey]/
     │       ├── hintIds/
