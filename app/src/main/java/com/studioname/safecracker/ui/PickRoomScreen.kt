@@ -62,6 +62,7 @@ import kotlin.math.ceil
 import kotlin.math.roundToInt
 import kotlin.random.Random
 import androidx.compose.ui.geometry.Offset
+import com.studioname.safecracker.ui.components.TimerText
 
 
 // number of rows and columns in the grid
@@ -150,6 +151,11 @@ fun PickRoomScreen(
         viewModel?.destinationRoom?.let { navigateToRoom(it) }
     }
 
+    val playerRoomsMap by (viewModel?.playerRooms ?: MutableStateFlow(emptyMap())).collectAsStateWithLifecycle()
+    val playersNotPicked = viewModel?.players?.filter {
+        !playerRoomsMap.containsKey(it.id.value)
+    } ?: emptyList()
+
     if (showPrompt) {
         ConfirmationPrompt(
             onConfirm = {
@@ -174,12 +180,7 @@ fun PickRoomScreen(
     ) {
         TitleText(text = "PICK A ROOM")
 
-        Text(
-            text = "$timeRemaining seconds remaining",
-            color = Color.White,
-            fontSize = TextSize.SUBTITLE.value,
-            fontWeight = FontWeight.Medium
-        )
+        TimerText(timeRemaining = timeRemaining)
 
         // displays all players in a container
         Column(
@@ -206,7 +207,7 @@ fun PickRoomScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    viewModel.playersNotPicked.forEach { player ->
+                    playersNotPicked.forEach { player ->
                         PlayerSticker(size = StickerSize.SMALL)
                     }
                 }

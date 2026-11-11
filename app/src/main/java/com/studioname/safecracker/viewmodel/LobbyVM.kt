@@ -1,5 +1,6 @@
 package com.studioname.safecracker.viewmodel
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -52,7 +53,9 @@ class LobbyVM @Inject constructor(
 
         // listen for game start
         viewModelScope.launch {
+            Log.d("PHASE_DEBUG", "[$lobbyCode] starting to listen for phase changes at ${System.currentTimeMillis()}")
             repository.getLobbyPhase(lobbyCode).collect { phase ->
+                Log.d("PHASE_DEBUG", "[$lobbyCode] received phase=$phase at ${System.currentTimeMillis()}")
                 if (phase == "PICK_ROOM") gameStarted = true
             }
         }
@@ -85,7 +88,7 @@ class LobbyVM @Inject constructor(
             try {
                 repository.startGame(
                     lobbyCode = lobbyCode,
-                    rooms = listOf(
+                    rooms = listOf( // TODO: send list of rooms dynamically from the settings
                         Room(name = "Kitchen"),
                         Room(name = "Storage"),
                         Room(name = "Living Room"),
