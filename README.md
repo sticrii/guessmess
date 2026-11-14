@@ -1,4 +1,4 @@
-    # SafeCracker
+    # GuessMess
 
 Party igra za grupu prijatelja - igrači otkrivaju šifru sefa pomoću hint kartica, trejdovanja informacija i socijalne dedukcije.
 
@@ -109,8 +109,8 @@ lobbies/
 ### 1. Kloniraj repo
 
 ```bash
-git clone https://github.com/[username]/safecracker.git
-cd safecracker
+git clone https://github.com/[username]/GuessMess.git
+cd GuessMess
 ```
 
 ### 2. Preuzmi `google-services.json`
@@ -118,12 +118,12 @@ cd safecracker
 Ovaj fajl **nije u repou** jer sadrži Firebase API ključeve.
 
 1. Idi na [console.firebase.google.com](https://console.firebase.google.com)
-2. Otvori projekat **SafeCracker**
+2. Otvori projekat **GuessMess**
 3. Project Settings → Your apps → Android app → Preuzmi `google-services.json`
 4. Stavi fajl u `app/` folder (ne u subfolder, direktno u `app/`)
 
 ```
-safecracker/
+GuessMess/
 ├── app/
 │   ├── google-services.json   ← ovdje
 │   └── src/
